@@ -1,0 +1,121 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-br from-indigo-500 to-emerald-500 text-white px-8 py-4 rounded-full font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-gray-900 border-2 border-gray-200 px-8 py-4 rounded-full font-semibold shadow-md hover:border-indigo-500 hover:-translate-y-0.5 transition-all duration-300;
+  }
+  
+  .btn-cta {
+    @apply bg-white text-indigo-600 px-10 py-4 rounded-full font-semibold shadow-lg hover:-translate-y-1 hover:shadow-xl transition-all duration-300 flex items-center gap-2;
+  }
+  
+  .section-header {
+    @apply text-center mb-12;
+  }
+  
+  .section-subtitle {
+    @apply text-indigo-600 text-sm font-semibold tracking-wide uppercase mb-2 inline-block px-4 py-1 bg-indigo-50 rounded-full;
+  }
+  
+  .section-title {
+    @apply font-bold text-4xl mb-4 text-gray-900;
+  }
+  
+  .section-desc {
+    @apply text-gray-600 max-w-2xl mx-auto text-lg;
+  }
+  
+  .feature-card {
+    @apply bg-white rounded-lg p-8 shadow-custom border border-transparent text-center relative overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:scale-105 hover:shadow-custom-lg hover:border-indigo-100;
+  }
+  
+  .feature-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-emerald-500 transform scale-x-0 origin-left transition-transform duration-500;
+  }
+  
+  .feature-card:hover::before {
+    @apply scale-x-100;
+  }
+  
+  .journey-step {
+    @apply bg-white rounded-lg p-8 shadow-custom border border-gray-200 text-center relative transition-all duration-300 hover:-translate-y-2 hover:shadow-custom-lg;
+  }
+  
+  .journey-step::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 bottom-0 rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 opacity-0 transition-opacity duration-300 -z-10;
+  }
+  
+  .journey-step:hover::before {
+    @apply opacity-5;
+  }
+  
+  .article-card {
+    @apply bg-white rounded-lg shadow-custom border border-gray-200 overflow-hidden relative transition-all duration-300 hover:-translate-y-2 hover:scale-102 hover:shadow-custom-lg;
+  }
+  
+  .article-card::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 bottom-0 rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 opacity-0 transition-opacity duration-300 -z-10;
+  }
+  
+  .article-card:hover::before {
+    @apply opacity-5;
+  }
+  
+  .stat-item {
+    @apply text-center p-8 bg-white/10 rounded-lg border border-white/20 transition-all duration-300 hover:-translate-y-1 hover:bg-white/15 hover:shadow-lg relative overflow-hidden;
+  }
+  
+  .stat-item::before {
+    content: '';
+    @apply absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-all duration-1000;
+  }
+  
+  .stat-item:hover::before {
+    @apply left-[100%];
+  }
+}
+
+/* Custom utilities */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(8px);
+}
+
+/* Custom gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Custom shadow definitions */
+.shadow-custom {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-custom-lg {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
