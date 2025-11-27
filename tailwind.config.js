@@ -9,7 +9,7 @@ export default {
       colors: {
         primary: {
           50: '#f0f4ff',
-          100: '#e0e7ff',
+          100: '#e0e7ff', 
           500: '#4f46e5',
           600: '#4338ca',
           700: '#3730a3',
@@ -19,10 +19,6 @@ export default {
           500: '#10b981',
           600: '#059669',
         }
-      },
-      borderRadius: {
-        'lg': '16px',
-        'sm': '8px',
       },
       boxShadow: {
         'custom': '0 10px 25px rgba(0, 0, 0, 0.05)',
@@ -39,9 +35,6 @@ export default {
       },
       scale: {
         '102': '1.02',
-      },
-      transitionDuration: {
-        '600': '600ms',
       }
     },
   },
