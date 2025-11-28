@@ -1,51 +1,67 @@
+// src/components/sections/Stats.jsx
 const Stats = () => {
   const stats = [
     {
-      icon: '👥',
       number: '50K+',
-      text: 'Pembaca Aktif'
+      label: 'Pengguna Aktif',
+      description: 'Bergabung dalam platform'
     },
     {
-      icon: '📚',
-      number: '1.2K+',
-      text: 'Konten Premium'
-    },
-    {
-      icon: '⭐',
       number: '95%',
-      text: 'Tingkat Kepuasan'
+      label: 'Kepuasan Pengguna',
+      description: 'Rating positif dari users'
     },
     {
-      icon: '👨‍🏫',
+      number: '1.2K+',
+      label: 'Konten Premium',
+      description: 'Artikel dan materi belajar'
+    },
+    {
       number: '42',
-      text: 'Ahli Literasi'
+      label: 'Ahli Literasi',
+      description: 'Bergabung sebagai mentor'
     }
   ];
 
   return (
-    <section className="bg-gradient-to-br from-indigo-600 to-indigo-500 text-white py-20 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0" style={{
-        background: 'radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%), url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.03\'%3E%3Cpath d=\'M20 20v0zm-10 10h20v0zm20-20v20h0zm-40 0h20v0zm0 20h20v0z\'/%3E%3C/g%3E%3C/svg%3E")'
-      }}></div>
-      
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section className="section bg-gray-50">
+      <div className="container mx-auto px-6">
+        <div className="section-header">
+          <h2 className="section-title">
+            Dalam Angka: <span className="gradient-text">Dampak Nyata</span>
+          </h2>
+          <p className="section-subtitle">
+            Bukti nyata dari komitmen kami dalam meningkatkan literasi Indonesia
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((stat, index) => (
-            <div key={index} className="stat-item group">
-              <div className="w-15 h-15 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
-                {stat.icon}
-              </div>
-              
-              <div className="text-4xl font-extrabold mb-2 bg-gradient-to-br from-white to-blue-100 bg-clip-text text-transparent">
-                {stat.number}
-              </div>
-              
-              <div className="text-lg font-medium opacity-90">
-                {stat.text}
-              </div>
+            <div key={index} className="stat-card">
+              <div className="stat-number">{stat.number}</div>
+              <div className="text-lg font-semibold text-gray-900 mb-2">{stat.label}</div>
+              <div className="text-gray-500 text-sm">{stat.description}</div>
             </div>
           ))}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-16 max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl p-8 shadow-soft">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              🎯 Target Kami: 1 Juta Pembaca Cerdas
+            </h3>
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
+              <div 
+                className="bg-gradient-to-r from-indigo-600 to-emerald-500 h-4 rounded-full transition-all duration-1000" 
+                style={{ width: '15%' }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>15% Tercapai</span>
+              <span>1,000,000 Pembaca</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>

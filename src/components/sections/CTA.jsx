@@ -1,27 +1,37 @@
+// src/components/sections/CTA.jsx
 const CTA = () => {
   return (
-    <section className="cta bg-gradient-to-br from-primary-500 to-secondary-500 text-white py-20 text-center relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-      }}></div>
-      
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="cta-content max-w-3xl mx-auto">
-          <h2 className="cta-title font-bold text-4xl mb-4">
-            Siap Meningkatkan Literasi Anda?
+    <section className="section gradient-bg text-white">
+      <div className="container mx-auto px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            Siap Mengubah Cara Anda Belajar Literasi?
           </h2>
           
-          <p className="cta-desc text-xl mb-8 opacity-90">
-            Bergabunglah dengan ribuan orang yang telah merasakan manfaat meningkatkan kemampuan literasi mereka. Mulai perjalanan literasi Anda hari ini!
+          <p className="text-xl mb-8 opacity-90 leading-relaxed">
+            Bergabunglah dengan <strong>50,000+ pembaca cerdas</strong> yang sudah merasakan manfaat MindLoop. 
+            Mulai perjalanan literasi Anda menuju pemikiran yang lebih kritis dan analitis.
           </p>
           
-          <button className="btn-cta mx-auto">
-            <span>Daftar Sekarang</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+            <button className="bg-white text-indigo-600 px-8 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 text-lg">
+              <span>Daftar Gratis Sekarang</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+            <button className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-indigo-600 transition-all duration-300">
+              Jadwalkan Demo
+            </button>
+          </div>
+          
+          <div className="text-sm opacity-80 flex flex-col sm:flex-row gap-2 justify-center items-center">
+            <span>✅ Tidak perlu kartu kredit</span>
+            <span className="hidden sm:block">•</span>
+            <span>✅ Bebas batalkan kapan saja</span>
+            <span className="hidden sm:block">•</span>
+            <span>✅ Akses penuh 14 hari</span>
+          </div>
         </div>
       </div>
     </section>
