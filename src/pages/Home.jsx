@@ -4,9 +4,13 @@ import Footer from '../components/layout/Footer';
 import Hero from '../components/sections/Hero';
 import ProblemAwareness from '../components/sections/ProblemAwareness';
 import Features from '../components/sections/Features';
+import DemoSection from '../components/sections/DemoSection';
+import CaseStudies from '../components/sections/CaseStudies';
 import Stats from '../components/sections/Stats';
 import Testimonials from '../components/sections/Testimonials';
+import FreeResources from '../components/sections/FreeResources';
 import CTA from '../components/sections/CTA';
+import LiveChat from '../components/layout/LiveChat';
 
 const Home = () => {
   return (
@@ -15,10 +19,14 @@ const Home = () => {
       <Hero />
       <ProblemAwareness />
       <Features />
+      <DemoSection />
+      <CaseStudies />
       <Stats />
       <Testimonials />
+      <FreeResources />
       <CTA />
       <Footer />
+      <LiveChat />
     </div>
   );
 };
