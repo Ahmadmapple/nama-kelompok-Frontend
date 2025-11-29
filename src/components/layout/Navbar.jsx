@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -24,15 +24,18 @@ const Navbar = () => {
       if (profileDropdownOpen && !event.target.closest('.profile-dropdown')) {
         setProfileDropdownOpen(false);
       }
+      if (mobileMenuOpen && !event.target.closest('.mobile-menu')) {
+        setMobileMenuOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [profileDropdownOpen]);
+  }, [profileDropdownOpen, mobileMenuOpen]);
 
   const navigation = [
     { name: 'Beranda', href: '/', type: 'link' },
-    { name: 'Fitur', href: '#features', type: 'link' },
+    { name: 'Fitur', href: '/features', type: 'link' }, // UPDATED: Features page
     { name: 'Artikel', href: '/articles', type: 'link' },
     { name: 'Kuis', href: '/quiz', type: 'link' },
     { name: 'Event', href: '/events', type: 'link' }
@@ -48,7 +51,14 @@ const Navbar = () => {
     if (type === 'link') {
       setMobileMenuOpen(false);
     }
-    // For anchor links, let the default behavior handle scrolling
+    // For anchor links, handle smooth scrolling
+    if (type === 'anchor') {
+      setMobileMenuOpen(false);
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   };
 
   return (
@@ -81,13 +91,13 @@ const Navbar = () => {
                   {item.name}
                 </Link>
               ) : (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
+                  onClick={() => handleNavClick(item.href, item.type)}
                   className="nav-link text-sm lg:text-base"
                 >
                   {item.name}
-                </a>
+                </button>
               )
             ))}
           </div>
@@ -143,6 +153,28 @@ const Navbar = () => {
                         </svg>
                         Progress Belajar
                       </Link>
+
+                      <Link
+                        to="/articles"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Artikel
+                      </Link>
+
+                      <Link
+                        to="/features"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Fitur
+                      </Link>
                       
                       <div className="border-t border-gray-100 my-1"></div>
                       
@@ -192,7 +224,7 @@ const Navbar = () => {
             
             {/* Mobile Menu Button */}
             <button 
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mobile-menu"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,27 +236,26 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-gray-200">
+          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu">
             <div className="flex flex-col space-y-3">
               {navigation.map((item) => (
                 item.type === 'link' ? (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="nav-link text-base"
+                    className="nav-link text-base py-2"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     {item.name}
                   </Link>
                 ) : (
-                  <a
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className="nav-link text-base"
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => handleNavClick(item.href, item.type)}
+                    className="nav-link text-base py-2 text-left"
                   >
                     {item.name}
-                  </a>
+                  </button>
                 )
               ))}
               
@@ -253,6 +284,26 @@ const Navbar = () => {
                     </svg>
                     Progress Belajar
                   </Link>
+                  <Link
+                    to="/articles"
+                    className="flex items-center gap-3 px-2 py-2 text-gray-700 hover:text-indigo-600 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Artikel
+                  </Link>
+                  <Link
+                    to="/features"
+                    className="flex items-center gap-3 px-2 py-2 text-gray-700 hover:text-indigo-600 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Fitur
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-2 py-2 text-red-600 hover:text-red-700 transition-colors"
@@ -267,14 +318,14 @@ const Navbar = () => {
                 <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
                   <Link 
                     to="/login" 
-                    className="btn btn-secondary justify-center text-base"
+                    className="btn btn-secondary justify-center text-base py-3"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Masuk
                   </Link>
                   <Link 
                     to="/register" 
-                    className="btn btn-primary justify-center text-base"
+                    className="btn btn-primary justify-center text-base py-3"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Daftar Gratis

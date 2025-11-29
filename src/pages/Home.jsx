@@ -3,7 +3,7 @@ import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/sections/Hero';
 import ProblemAwareness from '../components/sections/ProblemAwareness';
-import Features from '../components/sections/Features';
+import Features from '../components/sections/Features'; // ✅ INI YANG DARI SECTIONS
 import DemoSection from '../components/sections/DemoSection';
 import CaseStudies from '../components/sections/CaseStudies';
 import Stats from '../components/sections/Stats';
@@ -18,7 +18,7 @@ const Home = () => {
       <Navbar />
       <Hero />
       <ProblemAwareness />
-      <Features />
+      <Features /> {/* ✅ INI MENGGUNAKAN COMPONENT DARI SECTIONS */}
       <DemoSection />
       <CaseStudies />
       <Stats />
