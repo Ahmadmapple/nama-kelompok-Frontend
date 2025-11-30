@@ -70,3 +70,4 @@ const Journey = () => {
 };
 
 export default Journey;
+//penanda
