@@ -83,3 +83,4 @@ const QuizCard = ({ quiz, onStart }) => {
 };
 
 export default QuizCard;
+//penanda

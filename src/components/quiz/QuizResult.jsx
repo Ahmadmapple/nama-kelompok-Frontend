@@ -181,3 +181,4 @@ const QuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBack }) =>
 };
 
 export default QuizResult;
+//penanda

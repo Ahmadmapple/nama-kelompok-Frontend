@@ -237,3 +237,4 @@ export const getQuizCategories = (quizId) => {
   const categories = [...new Set(questions.map(q => q.category))];
   return categories;
 };
+//penanda

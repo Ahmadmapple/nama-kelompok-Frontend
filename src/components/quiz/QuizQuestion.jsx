@@ -282,3 +282,4 @@ const QuizQuestion = ({ quiz, question, currentQuestion, totalQuestions, onAnswe
 };
 
 export default QuizQuestion;
+//penanda

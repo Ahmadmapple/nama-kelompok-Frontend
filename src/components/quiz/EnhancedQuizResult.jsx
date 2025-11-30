@@ -417,3 +417,4 @@ const EnhancedQuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBa
 };
 
 export default EnhancedQuizResult;
+//penanda

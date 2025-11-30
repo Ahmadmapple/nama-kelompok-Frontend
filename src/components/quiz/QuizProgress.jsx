@@ -104,3 +104,4 @@ const QuizProgress = ({ currentQuestion, totalQuestions, quiz, userAnswer, corre
 };
 
 export default QuizProgress;
+//penanda
