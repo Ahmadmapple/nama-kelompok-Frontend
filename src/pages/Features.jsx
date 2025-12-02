@@ -207,10 +207,10 @@ const Features = () => {
       <section className="py-20 bg-gradient-to-r from-indigo-600 to-purple-600">
         <div className="container-optimized">
           <div className="max-w-4xl mx-auto text-center text-white">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
               Siap Memulai Perjalanan Literasi Anda?
             </h2>
-            <p className="text-xl opacity-90 mb-8 leading-relaxed">
+            <p className="text-xl opacity-90 mb-8 leading-relaxed text-white">
               Bergabunglah dengan <strong>50,000+ pembaca cerdas</strong> yang sudah mengalami 
               transformasi dalam kemampuan membaca dan berpikir kritis.
             </p>

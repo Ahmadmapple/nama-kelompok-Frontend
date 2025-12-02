@@ -67,7 +67,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="mt-12 min-h-screen bg-gray-50">
       <Navbar />
       
       {/* Profile Header */}

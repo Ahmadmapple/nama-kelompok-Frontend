@@ -212,7 +212,7 @@ const Quiz = () => {
       </section>
 
       {/* Category Filter */}
-      <section className="py-8 bg-white border-b border-gray-200 sticky top-0 z-40">
+      <section className="py-8 bg-white border-b border-gray-200 top-0 z-40">
         <div className="container-optimized">
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* Search Bar */}
@@ -337,11 +337,11 @@ const Quiz = () => {
           {/* Motivation Section for New Users */}
           {(!user || quizHistory.length === 0) && (
             <div className="mt-12 text-center">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-white max-w-2xl mx-auto">
-                <h3 className="text-2xl font-bold mb-4">
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 max-w-2xl mx-auto">
+                <h3 className="text-2xl font-bold mb-4 text-white">
                   Siap Memulai Perjalanan Literasi?
                 </h3>
-                <p className="opacity-90 mb-6">
+                <p className="opacity-90 mb-6 text-white">
                   Mulai dengan kuis pertama Anda dan dapatkan XP, lencana, serta track progress belajar Anda.
                 </p>
                 {!user ? (
@@ -353,7 +353,7 @@ const Quiz = () => {
                     Daftar Gratis untuk Mulai
                   </Link>
                 ) : (
-                  <p className="text-lg font-semibold">
+                  <p className="text-lg text-white font-semibold">
                     Pilih kuis di atas untuk memulai!
                   </p>
                 )}

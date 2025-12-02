@@ -157,7 +157,7 @@ const Articles = () => {
       </section>
 
       {/* Category Filter */}
-      <section className="py-8 bg-white border-b border-gray-200 sticky top-0 z-40">
+      <section className="py-8 bg-white border-b border-gray-200 top-0 z-40">
         <div className="container-optimized">
           <div className="flex gap-3 overflow-x-auto no-scrollbar px-2 py-1">
             {categories.map(category => (

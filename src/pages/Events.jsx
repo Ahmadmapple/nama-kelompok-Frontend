@@ -359,7 +359,8 @@ const Events = () => {
                       ))}
                     </div>
                     
-                    {/* Speaker Info */}
+                   <div className='flex flex-col justify-items-end'>
+                     {/* Speaker Info */}
                     <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                       <img 
                         src={event.speakerImage} 
@@ -386,6 +387,7 @@ const Events = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
                     </button>
+                   </div>
                   </div>
                 </div>
               ))}
@@ -393,9 +395,9 @@ const Events = () => {
           )}
 
           {/* Newsletter CTA */}
-          <div className="mt-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-center text-white">
-            <h3 className="text-2xl font-bold mb-4">Tidak Ingin Ketinggalan Event?</h3>
-            <p className="opacity-90 mb-6 max-w-2xl mx-auto">
+          <div className="mt-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-center">
+            <h3 className=" text-white text-2xl font-bold mb-4">Tidak Ingin Ketinggalan Event?</h3>
+            <p className=" text-white opacity-90 mb-6 max-w-2xl mx-auto">
               Dapatkan notifikasi event terbaru langsung ke email Anda. Bergabung dengan 10,000+ anggota komunitas literasi.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
