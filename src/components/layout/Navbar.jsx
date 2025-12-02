@@ -277,7 +277,7 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu">
+          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu bg-white">
             <div className="flex flex-col space-y-3">
               {navigation.map((item) => (
                 item.type === 'link' ? (

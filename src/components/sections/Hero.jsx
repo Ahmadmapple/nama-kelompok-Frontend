@@ -88,7 +88,7 @@ const Hero = () => {
             </div>
             
             {/* Floating Elements - Dioptimalkan untuk mobile */}
-            <div className="absolute -top-1 -left-1 xs:-top-2 xs:-left-2 sm:-top-3 sm:-left-3 md:-top-4 md:-left-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating border border-gray-100">
+            <div className="absolute -top-1 -left-1 xs:-top-2 xs:-left-2 sm:-top-3 sm:-left-3 md:-top-4 md:-left-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating border border-gray-100 z-10">
               <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3">
                 <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-md xs:rounded-lg sm:rounded-xl flex items-center justify-center text-white shadow-md">
                   <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@ const Hero = () => {
               </div>
             </div>
             
-            <div className="absolute -bottom-1 -right-1 xs:-bottom-2 xs:-right-2 sm:-bottom-3 sm:-right-3 md:-bottom-4 md:-right-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating floating-delay-1 border border-gray-100">
+            <div className="absolute -bottom-1 -right-1 xs:-bottom-2 xs:-right-2 sm:-bottom-3 sm:-right-3 md:-bottom-4 md:-right-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating floating-delay-1 border border-gray-100 z-10">
               <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3">
                 <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-md xs:rounded-lg sm:rounded-xl flex items-center justify-center text-white shadow-md">
                   <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

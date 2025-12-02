@@ -232,12 +232,12 @@ const Quiz = () => {
             </div>
 
             {/* Category Filters */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full">
               {quizCategories.map(category => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                  className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1 lg:px-4 lg:py-2 lg:text-sm lg:gap-2 ${
                     selectedCategory === category.id
                       ? 'bg-indigo-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
