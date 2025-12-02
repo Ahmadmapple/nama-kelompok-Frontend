@@ -188,23 +188,19 @@ const ArticleDetail = () => {
     <div className="min-h-screen bg-cream">
       <Navbar />
       
-      <div className="container-custom py-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-text-light mb-6">
-          <Link to="/" className="hover:text-dark-brown transition-colors">Beranda</Link>
-          <span>›</span>
-          <Link to="/articles" className="hover:text-dark-brown transition-colors">Artikel</Link>
-          <span>›</span>
-          <span className="text-dark-brown font-medium">{article.category}</span>
-        </nav>
+      <div className="container-custom py-8 mt-6">
 
         {/* Article Content */}
         <article className="max-w-4xl mx-auto">
           {/* Article Header */}
           <header className="mb-8">
-            <span className="inline-block bg-light-brown text-dark-brown px-4 py-2 rounded-full text-sm font-semibold mb-4">
-              {article.category}
-            </span>
+            <nav className="flex items-center gap-2 text-sm text-text-light mb-2 mt-6 py-2 relative z-10">
+              <Link to="/" className="hover:text-dark-brown transition-colors">Beranda</Link>
+              <span>›</span>
+              <Link to="/articles" className="hover:text-dark-brown transition-colors">Artikel</Link>
+              <span>›</span>
+              <span className="text-dark-brown font-medium">{article.category}</span>
+            </nav>
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-dark-brown mb-6 leading-tight">
               {article.title}
             </h1>
