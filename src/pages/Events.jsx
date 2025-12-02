@@ -223,7 +223,7 @@ const Events = () => {
             </div>
 
             {/* Category Filters */}
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full">
               {eventCategories.map(category => (
                 <button
                   key={category.id}

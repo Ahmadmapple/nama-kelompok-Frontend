@@ -23,7 +23,6 @@ const Home = () => {
       <CaseStudies />
       <Stats />
       <Testimonials />
-      <FreeResources />
       <CTA />
       <Footer />
       <LiveChat />

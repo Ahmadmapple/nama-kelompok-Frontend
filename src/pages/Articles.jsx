@@ -159,12 +159,12 @@ const Articles = () => {
       {/* Category Filter */}
       <section className="py-8 bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="container-optimized">
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar px-2 py-1">
             {categories.map(category => (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`px-5 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`px-3 py-2 rounded-lg text-xs md:px-5 md:py-3 md:text-sm font-medium ${
                   activeCategory === category.id
                     ? 'bg-indigo-600 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
