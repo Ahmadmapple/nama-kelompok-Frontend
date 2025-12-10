@@ -14,8 +14,7 @@ import ArticleDetail from './pages/ArticleDetail';
 import Profile from './pages/Profile';
 import Features from './pages/Features';
 import Quiz from './pages/Quiz';
-import Events from './pages/Events'; // ✅ IMPORT EVENTS
-import ProgressDashboard from './components/quiz/ProgressDashboard';
+import Events from './pages/Events';
 import './index.css';
 
 function App() {
@@ -31,7 +30,7 @@ function App() {
               <Route path="/articles" element={<Articles />} />
               <Route path="/articles/:id" element={<ArticleDetail />} />
               <Route path="/quiz" element={<Quiz />} />
-              <Route path="/events" element={<Events />} /> {/* ✅ ROUTE EVENTS */}
+              <Route path="/events" element={<Events />} />
               
               {/* Auth Routes - Hanya untuk guest */}
               <Route 
@@ -76,14 +75,6 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/progress" 
-                element={
-                  <ProtectedRoute>
-                    <ProgressDashboard />
-                  </ProtectedRoute>
-                } 
-              />
               
               {/* 404 Route */}
               <Route path="*" element={
@@ -106,4 +97,3 @@ function App() {
 }
 
 export default App;
-//penanda
