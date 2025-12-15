@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import AuthLayout from '../../components/auth/AuthLayout';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import AuthCenteredLayout from "../../components/auth/AuthCenteredLayout";
 
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
+    password: "",
+    confirmPassword: "",
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
-  
+
   const { token } = useParams();
   const navigate = useNavigate();
+  const { resetPassword } = useAuth();
 
   // Validasi token saat komponen mount
   useEffect(() => {
@@ -22,7 +23,7 @@ const ResetPassword = () => {
       // Simulasi validasi token
       if (!token || token.length < 10) {
         setIsValidToken(false);
-        setError('Token reset password tidak valid atau telah kedaluwarsa.');
+        setError("Token reset password tidak valid atau telah kedaluwarsa.");
       }
     };
 
@@ -31,38 +32,23 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError('Password dan konfirmasi password tidak cocok');
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError('Password harus minimal 8 karakter');
-      return;
-    }
+    setError("");
+    setSuccess("");
 
     setIsLoading(true);
 
     try {
-      // Simulasi API call untuk reset password
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ success: true });
-        }, 1500);
-      });
+      await resetPassword(token, formData.password, formData.confirmPassword);
 
-      setSuccess('Password berhasil direset! Anda akan diarahkan ke halaman login.');
-      
-      // Redirect ke login setelah 3 detik
+      setSuccess(
+        "Password berhasil direset! Anda akan diarahkan ke halaman login."
+      );
+
       setTimeout(() => {
-        navigate('/login');
+        navigate("/login");
       }, 3000);
-    } catch (error) {
-      setError('Gagal reset password. Silakan coba lagi atau minta link reset baru.');
+    } catch (err) {
+      setError(err.message || "Gagal reset password. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
@@ -71,39 +57,47 @@ const ResetPassword = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
-    if (error) setError('');
+    if (error) setError("");
   };
 
   if (!isValidToken) {
     return (
-      <AuthLayout
+      <AuthCenteredLayout
         title="Link Tidak Valid"
         subtitle="Link reset password tidak valid atau telah kedaluwarsa"
       >
         <div className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
           <p className="text-gray-600 mb-6">
-            Link reset password yang Anda gunakan tidak valid atau telah kedaluwarsa.
+            Link reset password yang Anda gunakan tidak valid atau telah
+            kedaluwarsa.
           </p>
-          <Link 
-            to="/forgot-password" 
-            className="btn btn-primary"
-          >
+          <Link to="/forgot-password" className="btn btn-primary">
             Minta Link Baru
           </Link>
         </div>
-      </AuthLayout>
+      </AuthCenteredLayout>
     );
   }
 
   return (
-    <AuthLayout
+    <AuthCenteredLayout
       title="Reset Password"
       subtitle="Buat password baru untuk akun Anda"
     >
@@ -112,8 +106,18 @@ const ResetPassword = () => {
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5 text-green-400 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span className="text-green-700 text-sm">{success}</span>
             </div>
@@ -124,8 +128,18 @@ const ResetPassword = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-5 h-5 text-red-400 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span className="text-red-700 text-sm">{error}</span>
             </div>
@@ -134,7 +148,10 @@ const ResetPassword = () => {
 
         {/* New Password Field */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Password Baru
           </label>
           <input
@@ -153,7 +170,10 @@ const ResetPassword = () => {
 
         {/* Confirm Password Field */}
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Konfirmasi Password Baru
           </label>
           <input
@@ -171,22 +191,46 @@ const ResetPassword = () => {
 
         {/* Password Requirements */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-sm font-medium text-gray-700 mb-2">Password harus mengandung:</p>
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            Password harus mengandung:
+          </p>
           <ul className="text-xs text-gray-600 space-y-1">
             <li className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${formData.password.length >= 8 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  formData.password.length >= 8 ? "bg-green-500" : "bg-gray-300"
+                }`}
+              ></span>
               Minimal 8 karakter
             </li>
             <li className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${/(?=.*[a-z])/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  /(?=.*[a-z])/.test(formData.password)
+                    ? "bg-green-500"
+                    : "bg-gray-300"
+                }`}
+              ></span>
               Minimal satu huruf kecil
             </li>
             <li className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${/(?=.*[A-Z])/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  /(?=.*[A-Z])/.test(formData.password)
+                    ? "bg-green-500"
+                    : "bg-gray-300"
+                }`}
+              ></span>
               Minimal satu huruf besar
             </li>
             <li className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${/(?=.*\d)/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  /(?=.*\d)/.test(formData.password)
+                    ? "bg-green-500"
+                    : "bg-gray-300"
+                }`}
+              ></span>
               Minimal satu angka
             </li>
           </ul>
@@ -204,11 +248,11 @@ const ResetPassword = () => {
               Memproses...
             </div>
           ) : (
-            'Reset Password'
+            "Reset Password"
           )}
         </button>
       </form>
-    </AuthLayout>
+    </AuthCenteredLayout>
   );
 };
 
