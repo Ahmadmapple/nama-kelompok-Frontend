@@ -1,7 +1,7 @@
 // src/App.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { EnhancedQuizProvider } from "./context/EnhancedQuizContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Home from "./pages/Home";
@@ -21,126 +21,150 @@ import CreateArticlePage from "./pages/createArticlePage";
 import CreateQuizPage from "./pages/createQuizPage";
 import CreateEventPage from "./pages/createEventPage";
 
+// Component wrapper untuk fetch profile
+const AppContent = () => {
+  // Ambil 'fetchProfile' dan 'authChecked'
+  // Hapus 'isProfileLoading' dari destructuring jika tidak digunakan di sini
+  const { fetchProfile, authChecked } = useAuth();
+
+  useEffect(() => {
+    // Panggil fetchProfile untuk mengambil data profil (termasuk avatar)
+    // di latar belakang segera setelah otentikasi selesai.
+    if (authChecked) {
+      fetchProfile(); // Ambil profile terbaru dari backend
+    }
+  }, [authChecked, fetchProfile]);
+
+  // === PERUBAHAN UTAMA: Hanya menunggu authChecked ===
+  // Kita HANYA menunggu 'authChecked'. Ini memastikan user melihat konten
+  // secepat mungkin. fetchProfile akan berjalan di background.
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Memverifikasi otentikasi...</p>
+      </div>
+    );
+  }
+
+  return (
+    <Router>
+      <div className="min-h-screen bg-white">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/articles" element={<Articles />} />
+          <Route path="/articles/:id" element={<ArticleDetail />} />
+          <Route path="/quiz" element={<Quiz />} />
+          <Route path="/events" element={<Events />} />
+
+          {/* Auth Routes - Hanya untuk guest */}
+          <Route
+            path="/login"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <Login />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <Register />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <ForgotPassword />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reset-password/:token"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <ResetPassword />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/emailVerification"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <EmailVerification />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected Routes */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-article"
+            element={
+              <ProtectedRoute>
+                <CreateArticlePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-quiz"
+            element={
+              <ProtectedRoute>
+                <CreateQuizPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-event"
+            element={
+              <ProtectedRoute>
+                <CreateEventPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 404 */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+                  <p className="text-xl text-gray-600 mb-8">
+                    Halaman tidak ditemukan
+                  </p>
+                  <a href="/" className="btn btn-primary">
+                    Kembali ke Beranda
+                  </a>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
 function App() {
-  return (
-    <AuthProvider>
-      <EnhancedQuizProvider>
-        <Router>
-          <div className="min-h-screen bg-white">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/articles" element={<Articles />} />
-              <Route path="/articles/:id" element={<ArticleDetail />} />
-              <Route path="/quiz" element={<Quiz />} />
-              <Route path="/events" element={<Events />} />
-
-              {/* Auth Routes - Hanya untuk guest */}
-              <Route
-                path="/login"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <Login />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <Register />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/forgot-password"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <ForgotPassword />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reset-password/:token"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <ResetPassword />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/emailVerification"
-                element={
-                  <ProtectedRoute requireAuth={false}>
-                    <EmailVerification />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Protected Routes - Hanya untuk user yang login */}
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/create-article"
-                element={
-                  <ProtectedRoute>
-                    {/* Placeholder for CreateArticle component */}
-                    <CreateArticlePage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/create-quiz"
-                element={
-                  <ProtectedRoute>
-                    <CreateQuizPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/create-event"
-                element={
-                  <ProtectedRoute>
-                    <CreateEventPage />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 404 Route */}
-              <Route
-                path="*"
-                element={
-                  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                    <div className="text-center">
-                      <h1 className="text-6xl font-bold text-gray-900 mb-4">
-                        404
-                      </h1>
-                      <p className="text-xl text-gray-600 mb-8">
-                        Halaman tidak ditemukan
-                      </p>
-                      <a href="/" className="btn btn-primary">
-                        Kembali ke Beranda
-                      </a>
-                    </div>
-                  </div>
-                }
-              />
-            </Routes>
-          </div>
-        </Router>
-      </EnhancedQuizProvider>
-    </AuthProvider>
-  );
+  return (
+    <AuthProvider>
+      <EnhancedQuizProvider>
+        <AppContent />
+      </EnhancedQuizProvider>
+    </AuthProvider>
+  );
 }
 
 export default App;
