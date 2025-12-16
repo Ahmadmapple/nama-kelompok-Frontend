@@ -14,7 +14,8 @@ const Login = () => {
   const {
     login,
     authError, // string error dari AuthContext
-    clearAuthMessages, // reset error/success
+    clearAuthMessages,
+    fetchProfile, // reset error/success
   } = useAuth();
 
   useEffect(() => {
@@ -30,6 +31,7 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
 
     if (result?.success) {
+      await fetchProfile();
       navigate("/profile");
     }
 

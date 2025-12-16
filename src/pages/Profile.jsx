@@ -2,148 +2,150 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+import { Camera } from "lucide-react";
 
 // =========================================================
 // FUNGSI PEMBANTU: Mendapatkan URL Avatar (Foto Asli atau Inisial)
 // =========================================================
 const getAvatarUrl = (name, existingAvatarUrl) => {
-  // 1. Cek: Jika sudah ada URL avatar yang valid dari database, gunakan itu.
-  if (existingAvatarUrl && 
-      existingAvatarUrl !== "" && 
-      !existingAvatarUrl.includes("placeholder")) {
+  if (
+    existingAvatarUrl &&
+    existingAvatarUrl !== "" &&
+    !existingAvatarUrl.includes("placeholder")
+  ) {
     return existingAvatarUrl;
   }
-  
-  // 2. Fallback: Jika tidak ada foto, buat URL inisial dari nama.
-  // Menggunakan ui-avatars.com (Gantilah ini dengan layanan Anda sendiri atau generator Canvas jika diperlukan)
   const size = 150;
-  const color = 'FFFFFF'; 
-  const background = '4C51BF'; // Indigo
-  
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=${size}&color=${color}&background=${background}&bold=true`;
+  const color = "FFFFFF";
+  const background = "4C51BF";
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    name
+  )}&size=${size}&color=${color}&background=${background}&bold=true`;
 };
 // =========================================================
 
 // Komponen Profile
 const Profile = () => {
-  const { user } = useAuth();
+  // Pastikan fetchProfile ada dan mengembalikan data profil
+  const { user, updateProfile, fetchProfile } = useAuth();
+
+  // === STATE UNTUK DATA PROFIL (dari DB) ===
+  const [profileData, setProfileData] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true); // Mulai dari true
 
   // === STATE UNTUK EDIT PROFIL ===
   const [isEditing, setIsEditing] = useState(false);
-
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
-    tempAvatar: "", // Menyimpan URL avatar (asli, inisial, atau yang baru diunggah sementara)
+    tempAvatar: "",
+    avatarFile: null,
   });
-
-  // Efek untuk mengisi form saat user data tersedia
+  // =========================================================
+  // EFFECT: Mengambil Data Profil dari Backend (PENCEGAH FLICKER)
+  // =========================================================
   useEffect(() => {
-    if (user) {
-      // Tentukan avatar URL yang benar saat memuat
-      // Asumsikan field 'avatar' ada di objek user dari AuthContext
-      const initialAvatar = getAvatarUrl(user.name, user.avatar);
-      
+    let isMounted = true; // Flag untuk mencegah memory leak dan set state di unmounted component
+
+    // Handle Auth user data
+    if (!user) {
+      if (isMounted) setIsLoadingProfile(false);
+      return;
+    }
+
+    // 1. Set Initial State Form Edit (Mengambil dari data user AuthContext)
+    const initialAvatar = getAvatarUrl(user.name, user.avatar);
+    if (isMounted) {
       setEditForm({
         name: user.name,
         email: user.email,
         tempAvatar: initialAvatar,
+        avatarFile: null,
       });
     }
-  }, [user]);
-  // ===============================
 
-  // Data sample (Tetap dipertahankan)
-  const profileData = {
-    literacyScore: 78,
-    level: 5,
-    xp: 1250,
-    xpToNextLevel: 1500,
-    // Menggunakan optional chaining dan default value
-    memberSince: user?.memberSince || "15 Jan 2024", 
-    articlesRead: 47,
-    readingTime: "28 jam",
-    quizzesCompleted: 47,
-    currentStreak: 12,
-    eventsAttended: 15,
-    // ... data statistik lainnya ...
-    badges: [
-      { id: 1, name: "Pembaca Aktif", icon: "📚", earned: true, date: "2024-01-20" },
-      { id: 2, name: "Kuis Master", icon: "🏆", earned: true, date: "2024-02-15" },
-      { id: 3, name: "Streak 7 Hari", icon: "🔥", earned: true, date: "2024-02-10" },
-      { id: 4, name: "Event Explorer", icon: "🎪", earned: true, date: "2024-03-01" },
-      { id: 5, name: "Speed Reader", icon: "⚡", earned: false },
-      { id: 6, name: "Analyst Pro", icon: "🔍", earned: false },
-    ],
-    readingHistory: [
-      { id: 1, title: "Teknik Membaca Cepat untuk Pemula", date: "Hari ini", category: "Teknik Membaca", progress: 100 },
-      { id: 2, title: "Mengasah Kemampuan Berpikir Kritis", date: "Kemarin", category: "Berpikir Kritis", progress: 85 },
-      { id: 3, title: "Literasi Digital di Era Informasi", date: "2 hari lalu", category: "Literasi Digital", progress: 100 },
-    ],
-    skills: [
-      { name: "Pemahaman Bacaan", level: 85 },
-      { name: "Kecepatan Membaca", level: 70 },
-      { name: "Analisis Kritis", level: 80 },
-      { name: "Fact-Checking", level: 75 },
-      { name: "Menulis Ringkasan", level: 65 },
-    ],
-    weeklyGoals: [
-      { goal: "Baca 5 artikel", completed: 4, target: 5, progress: 80 },
-      { goal: "Selesaikan 3 kuis", completed: 2, target: 3, progress: 67 },
-      { goal: "Habiskan 3 jam membaca", completed: 2.5, target: 3, progress: 83 },
-    ],
-    communityStats: {
-      rank: 245,
-      totalUsers: 10000,
-      impactScore: 87,
-    },
-  };
+    // 2. Fungsi untuk mengambil data profil lengkap dari backend
+    const fetchProfileData = async () => {
+      if (!profileData && isMounted) {
+        setIsLoadingProfile(true);
+      }
 
-  const levelProgress = (profileData.xp / profileData.xpToNextLevel) * 100;
+      try {
+        // Memanggil fetchProfile dari AuthContext
+        const data = await fetchProfile();
 
-  // Handler untuk perubahan input form
+        if (isMounted) {
+          if (data) {
+            setProfileData(data);
+          } else {
+            console.error("Data profil kosong dari backend.");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        // Anda bisa menambahkan state error di sini
+      } finally {
+        if (isMounted) {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+    fetchProfileData();
+
+    // Cleanup function: Set isMounted ke false saat komponen dilepas
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Dependency pada user (dari AuthContext) dan fetchProfile
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler untuk upload foto (Hanya menampilkan pratinjau)
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
       setEditForm((prev) => ({
         ...prev,
-        // Menyimpan URL Blob sementara untuk pratinjau
-        tempAvatar: URL.createObjectURL(file), 
-        // Anda mungkin ingin menyimpan objek File di sini juga: newAvatarFile: file
+        tempAvatar: URL.createObjectURL(file),
+        avatarFile: file,
       }));
     }
   };
 
-  // Handler untuk menyimpan perubahan (Simulasi UI)
-  const handleSave = () => {
-    console.log("Data yang akan disimpan:", editForm);
-    // TODO: Kirim data ke server (termasuk file avatar baru jika ada)
-    alert("Profil berhasil diperbarui! (Simulasi UI)");
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const formData = new FormData();
+      formData.append("name", editForm.name);
+
+      if (editForm.avatarFile) {
+        formData.append("avatar", editForm.avatarFile);
+      }
+
+      await updateProfile(formData);
+      setIsEditing(false);
+
+      // Setelah save, kita bisa memicu fetch ulang untuk mendapatkan data statistik terbaru (jika perlu)
+      // Namun, karena `updateProfile` biasanya mengupdate `user`, useEffect akan terpicu secara otomatis.
+    } catch (err) {
+      console.error(err);
+      alert("Gagal menyimpan perubahan profil.");
+    }
   };
 
-  // Handler untuk membatalkan edit
   const handleCancel = () => {
     if (!user) return;
-
-    // Reset form kembali ke data user asli dan avatar inisial/asli
-    const initialAvatar = getAvatarUrl(user.name, user.avatar);
-    
     setEditForm({
       name: user.name,
       email: user.email,
-      tempAvatar: initialAvatar,
+      tempAvatar: getAvatarUrl(user.name, user.avatar),
+      avatarFile: null,
     });
     setIsEditing(false);
   };
 
-  // Component kecil untuk styling input di mode edit
   const EditInput = ({
     label,
     name,
@@ -151,6 +153,7 @@ const Profile = () => {
     onChange,
     type = "text",
     disabled = false,
+    placeholder = "",
   }) => (
     <div className="flex flex-col">
       <label className="text-xs font-medium text-gray-500 mb-1">{label}</label>
@@ -161,23 +164,48 @@ const Profile = () => {
         type={type}
         name={name}
         value={value}
+        placeholder={placeholder}
         onChange={onChange}
         disabled={disabled}
       />
     </div>
   );
 
-  if (!user) {
+  // === KONDISI LOADING DAN ERROR YANG LEBIH BAIK ===
+  if (isLoadingProfile || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat profil...</p>
+          <p className="text-gray-600">Memuat data profil...</p>
         </div>
       </div>
     );
   }
 
+  // Menangani jika data gagal dimuat (misal: fetchProfile mengembalikan null atau error)
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white shadow-lg rounded-xl">
+          <h2 className="text-xl font-bold text-red-600 mb-2">
+            Gagal Memuat Data
+          </h2>
+          <p className="text-gray-600">
+            Terjadi kesalahan saat mengambil data profil. Pastikan fungsi
+            `fetchProfile` di `AuthContext` mengembalikan data dengan format
+            yang benar.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  // =================================================
+
+  // Gunakan shorthand 'data' untuk kemudahan membaca kode JSX
+  const data = profileData;
+  const levelProgress = (data.xp / data.xpToNextLevel) * 100;
+  const literacyPercentage = Math.min(Math.max(data.literacyScore, 0), 100);
   return (
     <div className="mt-12 min-h-screen bg-gray-50">
       <Navbar />
@@ -186,7 +214,6 @@ const Profile = () => {
       <div className="bg-white border-b border-gray-200">
         <div className="container-optimized py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            
             {/* Avatar Section */}
             <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
               <img
@@ -200,20 +227,7 @@ const Profile = () => {
                   className="absolute bottom-0 right-0 p-1 bg-indigo-600 text-white rounded-full cursor-pointer hover:bg-indigo-700 transition transform hover:scale-110 shadow-lg"
                   title="Ganti Foto Profil"
                 >
-                  {/* Icon Edit/Kamera */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="w-5 h-5"
-                  >
-                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M9.444 14.793a8 8 0 01-5.115-4.57 1 1 0 01.996-1.558 1 1 0 011.559.996 6 6 0 109.11-3.642 1 1 0 01.996 1.558 1 1 0 01-1.559.996z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  <Camera className="w-5 h-5" />
                 </label>
               )}
               <input
@@ -234,16 +248,18 @@ const Profile = () => {
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                     {editForm.name}
                   </h1>
-                  <p className="text-gray-600 mt-1">{editForm.email}</p>
+                  <p className="text-gray-600 mt-1">
+                    {editForm.email || user?.email}
+                  </p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="inline-block px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full capitalize">
-                      {user?.role}
+                      {data.role || "User"}
                     </span>
 
                     <span className="text-sm text-gray-500">
                       Member sejak{" "}
                       <strong className="text-gray-700">
-                        {profileData.memberSince}
+                        {data.memberSince}
                       </strong>
                     </span>
                   </div>
@@ -258,12 +274,12 @@ const Profile = () => {
                     onChange={handleEditChange}
                   />
                   <EditInput
-                    label="Email (Tidak Dapat Diubah)"
+                    label="Email"
                     name="email"
-                    value={editForm.email}
+                    value={editForm.email || user?.email || ""}
                     onChange={handleEditChange}
                     type="email"
-                    disabled={true}
+                    disabled
                   />
                 </div>
               )}
@@ -297,9 +313,7 @@ const Profile = () => {
 
               {/* Literacy Score */}
               <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl p-4 text-center min-w-[120px] mt-4 md:mt-0">
-                <div className="text-2xl font-bold">
-                  {profileData.literacyScore}
-                </div>
+                <div className="text-2xl font-bold">{data.literacyScore}</div>
                 <div className="text-xs opacity-90">Literacy Score</div>
               </div>
             </div>
@@ -318,52 +332,55 @@ const Profile = () => {
                 Literacy Score & Progress
               </h2>
 
-              {/* Main Score & Skills (kode tidak berubah) */}
+              {/* Main Score & Skills */}
               <div className="text-center mb-6">
-                <div className="relative inline-block">
-                  <div className="w-32 h-32 rounded-full border-8 border-gray-100 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900">
-                        {profileData.literacyScore}
-                      </div>
-                      <div className="text-sm text-gray-500">/100</div>
-                    </div>
-                  </div>
+                <div className="relative w-32 h-32 mx-auto">
+                  {/* Background Circle */}
                   <div
-                    className="absolute top-0 left-0 w-32 h-32 rounded-full border-8 border-transparent border-t-indigo-500 border-r-indigo-400 -rotate-45"
+                    className="w-32 h-32 rounded-full bg-gray-200"
                     style={{
-                      clipPath:
-                        "polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 50%)",
+                      background: `conic-gradient(#6366F1 ${
+                        literacyPercentage * 3.6
+                      }deg, #E5E7EB 0deg)`,
                     }}
                   ></div>
+
+                  {/* Inner Circle (white) */}
+                  <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center">
+                    <div className="text-3xl font-bold text-gray-900">
+                      {data.literacyScore}
+                    </div>
+                    <div className="text-sm text-gray-500">/100</div>
+                  </div>
                 </div>
               </div>
-              
+
               {/* Skills Progress */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">
                   Kemampuan Literasi
                 </h3>
-                {profileData.skills.map((skill, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700">{skill.name}</span>
-                      <span className="text-gray-900 font-medium">
-                        {skill.level}%
-                      </span>
+                {data.skills &&
+                  data.skills.map((skill, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700">{skill.name}</span>
+                        <span className="text-gray-900 font-medium">
+                          {skill.level}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${skill.level}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${skill.level}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
-            {/* Weekly Goals (kode tidak berubah) */}
+            {/* Weekly Goals */}
             <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">
@@ -374,93 +391,95 @@ const Profile = () => {
                 </span>
               </div>
               <div className="space-y-4">
-                {profileData.weeklyGoals.map((goal, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          goal.progress === 100
-                            ? "bg-green-100 text-green-600"
-                            : "bg-blue-100 text-blue-600"
-                        }`}
-                      >
-                        {goal.progress === 100 ? "✓" : "🎯"}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {goal.goal}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {goal.completed}/{goal.target} selesai
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">
-                        {goal.progress}%
-                      </div>
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                {data.weeklyGoals &&
+                  data.weeklyGoals.map((goal, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
                         <div
-                          className={`h-2 rounded-full ${
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             goal.progress === 100
-                              ? "bg-green-500"
-                              : "bg-blue-500"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-100 text-blue-600"
                           }`}
-                          style={{ width: `${goal.progress}%` }}
-                        ></div>
+                        >
+                          {goal.progress === 100 ? "✓" : "🎯"}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {goal.goal}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {goal.completed}/{goal.target} selesai
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">
+                          {goal.progress}%
+                        </div>
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              goal.progress === 100
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }`}
+                            style={{ width: `${goal.progress}%` }}
+                          ></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
-            {/* Reading History (kode tidak berubah) */}
+            {/* Reading History */}
             <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Riwayat Bacaan Terbaru
               </h2>
               <div className="space-y-3">
-                {profileData.readingHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          item.progress === 100
-                            ? "bg-green-100 text-green-600"
-                            : "bg-blue-100 text-blue-600"
-                        }`}
-                      >
-                        {item.progress === 100 ? "✓" : "📖"}
+                {data.readingHistory &&
+                  data.readingHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            item.progress === 100
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-100 text-blue-600"
+                          }`}
+                        >
+                          {item.progress === 100 ? "✓" : "📖"}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {item.title}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {item.category} • {item.date}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {item.title}
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {item.progress}%
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {item.category} • {item.date}
-                        </div>
+                        <div className="text-xs text-gray-500">Selesai</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.progress}%
-                      </div>
-                      <div className="text-xs text-gray-500">Selesai</div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Achievements & Stats (kode tidak berubah) */}
+          {/* Right Column - Achievements & Stats */}
           <div className="space-y-6">
             {/* Level Progress */}
             <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
@@ -470,10 +489,10 @@ const Profile = () => {
 
               <div className="text-center mb-4">
                 <div className="text-3xl font-bold text-gray-900 mb-2">
-                  Level {profileData.level}
+                  Level {data.level}
                 </div>
                 <div className="text-sm text-gray-600">
-                  {profileData.xp} / {profileData.xpToNextLevel} XP
+                  {data.xp} / {data.xpToNextLevel} XP
                 </div>
               </div>
 
@@ -485,8 +504,8 @@ const Profile = () => {
               </div>
 
               <div className="flex justify-between text-sm text-gray-500">
-                <span>Level {profileData.level}</span>
-                <span>Level {profileData.level + 1}</span>
+                <span>Level {data.level}</span>
+                <span>Level {data.level + 1}</span>
               </div>
             </div>
 
@@ -498,7 +517,7 @@ const Profile = () => {
                 </h2>
                 <div className="flex items-center gap-1 text-amber-600">
                   <span className="text-lg">🔥</span>
-                  <span className="font-bold">{profileData.currentStreak}</span>
+                  <span className="font-bold">{data.currentStreak}</span>
                 </div>
               </div>
 
@@ -507,7 +526,7 @@ const Profile = () => {
                   <div
                     key={index}
                     className={`h-2 rounded ${
-                      index < profileData.currentStreak
+                      index < data.currentStreak
                         ? "bg-amber-500"
                         : "bg-gray-200"
                     }`}
@@ -515,7 +534,7 @@ const Profile = () => {
                 ))}
               </div>
               <p className="text-sm text-gray-600 text-center">
-                {profileData.currentStreak} hari beruntun aktif!
+                {data.currentStreak} hari beruntun aktif!
               </p>
             </div>
 
@@ -526,32 +545,33 @@ const Profile = () => {
               </h2>
 
               <div className="grid grid-cols-2 gap-3">
-                {profileData.badges.map((badge) => (
-                  <div
-                    key={badge.id}
-                    className={`p-3 rounded-lg text-center ${
-                      badge.earned
-                        ? "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200"
-                        : "bg-gray-50 border border-gray-200 opacity-50"
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{badge.icon}</div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {badge.name}
-                    </div>
-                    {badge.earned && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {new Date(badge.date).toLocaleDateString("id-ID")}
+                {data.badges &&
+                  data.badges.map((badge) => (
+                    <div
+                      key={badge.id}
+                      className={`p-3 rounded-lg text-center ${
+                        badge.earned
+                          ? "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200"
+                          : "bg-gray-50 border border-gray-200 opacity-50"
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{badge.icon}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {badge.name}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {badge.earned && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {badge.date}
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
 
               <div className="mt-4 text-center">
                 <div className="text-sm text-gray-600">
-                  {profileData.badges.filter((b) => b.earned).length} dari{" "}
-                  {profileData.badges.length} lencana terkumpul
+                  {data.badges ? data.badges.filter((b) => b.earned).length : 0}{" "}
+                  dari {data.badges ? data.badges.length : 0} lencana terkumpul
                 </div>
               </div>
             </div>
@@ -566,25 +586,25 @@ const Profile = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Artikel Dibaca</span>
                   <span className="font-semibold text-gray-900">
-                    {profileData.articlesRead}
+                    {data.articlesRead}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Waktu Membaca</span>
                   <span className="font-semibold text-gray-900">
-                    {profileData.readingTime}
+                    {data.readingTime}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Kuis Diselesaikan</span>
                   <span className="font-semibold text-gray-900">
-                    {profileData.quizzesCompleted}
+                    {data.quizzesCompleted}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Event Dihadiri</span>
                   <span className="font-semibold text-gray-900">
-                    {profileData.eventsAttended}
+                    {data.eventsAttended}
                   </span>
                 </div>
               </div>
@@ -594,15 +614,13 @@ const Profile = () => {
             <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
               <h2 className="text-xl font-bold mb-2">Peringkat Komunitas</h2>
               <div className="text-3xl font-bold mb-1">
-                #{profileData.communityStats.rank}
+                #{data.communityStats.rank}
               </div>
               <div className="text-sm opacity-90">
-                Dari {profileData.communityStats.totalUsers.toLocaleString()}{" "}
-                pengguna
+                Dari {data.communityStats.totalUsers.toLocaleString()} pengguna
               </div>
               <div className="mt-3 text-sm">
-                Impact Score:{" "}
-                <strong>{profileData.communityStats.impactScore}</strong>
+                Impact Score: <strong>{data.communityStats.impactScore}</strong>
               </div>
             </div>
           </div>

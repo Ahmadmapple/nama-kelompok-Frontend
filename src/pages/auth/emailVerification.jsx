@@ -49,11 +49,18 @@ const EmailVerification = () => {
     setError("");
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: code.join(""), email: localStorage.getItem("email"), token: localStorage.getItem("otpToken") }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/verify-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            otp: code.join(""),
+            email: localStorage.getItem("email"),
+            token: localStorage.getItem("otpToken"),
+          }),
+        }
+      );
       const data = await res.json();
 
       if (res.ok) {
@@ -75,21 +82,33 @@ const EmailVerification = () => {
 
     const email = localStorage.getItem("email");
     if (!email) {
-      setError("Email tidak ditemukan. Silakan login atau daftar terlebih dahulu.");
+      setError(
+        "Email tidak ditemukan. Silakan login atau daftar terlebih dahulu."
+      );
       setIsResending(false);
       return;
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/send-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
       const data = await res.json();
 
       if (res.ok) {
         alert("Kode OTP baru telah dikirim ke email Anda.");
+
+        // === PERBAIKAN DI SINI: SIMPAN TOKEN OTP BARU DARI RESPONSE ===
+        if (data.token) {
+          localStorage.setItem("otpToken", data.token);
+        }
+        // ==============================================================
+
         setCode(Array(6).fill("")); // clear previous input
         inputsRef.current[0]?.focus(); // focus first box
       } else {
