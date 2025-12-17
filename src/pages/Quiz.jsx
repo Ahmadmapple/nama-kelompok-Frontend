@@ -12,11 +12,11 @@ import EnhancedQuizResult from "../components/quiz/EnhancedQuizResult";
 // Definisikan 5 Kategori Hardcode (ID harus sesuai dengan nilai 'category' di backend Anda)
 const STATIC_CATEGORIES = [
   // Pastikan ID ini cocok dengan nilai 'category' yang dikirim dari backend
-  { id: "literasi-digital", name: "Literasi Digital" },
+  { id: "digital-literacy", name: "Literasi Digital" },
   { id: "fact-checking", name: "Fact-Checking" },
-  { id: "teknik-membaca", name: "Teknik Membaca" },
+  { id: "reading-techniques", name: "Teknik Membaca" },
   { id: "skill-research", name: "Skill Research" },
-  { id: "berpikir-kritis", name: "Berpikir Kritis" },
+  { id: "critical-thinking", name: "Berpikir Kritis" },
 ];
 
 const Quiz = () => {
@@ -39,7 +39,18 @@ const Quiz = () => {
       try {
         const response = await axios.get("http://localhost:3000/api/kuis/");
         if (Array.isArray(response.data)) {
-          setQuizzes(response.data);
+          const processedQuizzes = response.data.map((quiz) => ({
+            ...quiz,
+            questions: quiz.questions.map((q) => ({
+              ...q,
+              // Backend sudah mengirim sebagai Number, ini hanya memastikan (fail-safe)
+              score: Number(q.score) || 0,
+              correctAnswer: Number(q.correctAnswer) || 0,
+              timeLimit: Number(q.timeLimit) || 30,
+            })),
+          }));
+
+          setQuizzes(processedQuizzes);
         } else {
           setQuizzes([]);
         }
@@ -121,19 +132,21 @@ const Quiz = () => {
 
   const calculateScore = () => {
     if (!activeQuiz || !quizCompleted) return 0;
-    let correctAnswers = 0;
+    let totalScore = 0;
 
     activeQuiz.questions.forEach((q, i) => {
-      // FIX PENTING: Konversi kunci jawaban dari string ke angka
+      // Pastikan correctAnswer sudah menjadi number (seharusnya sudah di useEffect/backend)
       const correctAnswerIndex = Number(q.correctAnswer);
 
-      // Bandingkan angka dengan angka
+      // Bandingkan angka userAnswers dengan angka kunci jawaban
       if (userAnswers[i] === correctAnswerIndex) {
-        correctAnswers++;
+        // PERBAIKAN PENTING: Tambahkan skor soal yang sudah dibobot (q.score)
+        totalScore += Number(q.score) || 0;
       }
     });
 
-    return Math.round((correctAnswers / activeQuiz.questions.length) * 100);
+    // Total skor seharusnya selalu 100 karena sudah dihitung di backend/frontend saat buat kuis
+    return Math.min(Math.round(totalScore), 100);
   };
 
   const resetQuiz = () => {
@@ -199,7 +212,6 @@ const Quiz = () => {
               meningkatkan kemampuan membaca kritis, analisis informasi, dan
               berpikir logis.
             </p>
-
           </div>
         </div>
       </section>
@@ -261,6 +273,7 @@ const Quiz = () => {
               ))}
             </div>
           </div>
+          <div className="mt-4"></div>
         </div>
       </section>
 
@@ -288,10 +301,6 @@ const Quiz = () => {
                   <span className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     Selesai
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    Tersedia
                   </span>
                 </div>
               </div>
@@ -336,7 +345,18 @@ const Quiz = () => {
                       quiz={{
                         ...quiz,
                         questionsCount: quiz.questions?.length || 0,
-                        duration: quiz.totaltime, // Mengirim totalTime sebagai duration
+                        // FIX 1: Menggunakan 'totaltime' (lowercase)
+                        duration: quiz.totaltime,
+
+                        categoryName:
+                          STATIC_CATEGORIES.find(
+                            (cat) => cat.id === quiz.category
+                          )?.name || "Lain-lain",
+
+                        // FIX 2 & 3: Menggunakan 'creatorname' & 'creatorimage' (lowercase)
+                        creatorName: quiz.creatorname || "Kontributor",
+                        creatorImage: quiz.creatorimage,
+
                         completed: quizHistory.some(
                           (h) => h.quizId === quiz.id
                         ),

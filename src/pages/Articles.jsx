@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
@@ -10,8 +10,7 @@ const Articles = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const categories = [
-    { id: "all", name: "Semua Kategori" },
+  const STATIC_CATEGORIES = [
     { id: "digital-literacy", name: "Literasi Digital" },
     { id: "critical-thinking", name: "Berpikir Kritis" },
     { id: "reading-techniques", name: "Teknik Membaca" },
@@ -22,11 +21,19 @@ const Articles = () => {
   // ================= FETCH =================
   useEffect(() => {
     const fetchArticles = async () => {
+      setLoading(true);
       try {
-        const res = await axios.get("http://localhost:3000/api/article/");
-        setArticles(res.data);
+        // Asumsi API Anda berjalan di port 3000
+        const res = await axios.get("http://localhost:3000/api/article/"); 
+        // NOTE: Pastikan res.data berisi array objek artikel
+        if (Array.isArray(res.data)) {
+          setArticles(res.data);
+        } else {
+          setArticles([]);
+        }
       } catch (err) {
         console.error("Gagal ambil artikel:", err.message);
+        setArticles([]);
       } finally {
         setLoading(false);
       }
@@ -35,23 +42,53 @@ const Articles = () => {
     fetchArticles();
   }, []);
 
-  // ================= FILTER =================
-  const filteredArticles =
-    activeCategory === "all"
+  // ================= 1. HITUNG JUMLAH ARTIKEL PER KATEGORI (useMemo) =================
+  const articleCategories = useMemo(() => {
+    // 1. Hitung berapa banyak artikel yang dimiliki setiap kategori
+    const categoryCounts = articles.reduce((acc, article) => {
+      // Menggunakan properti 'kategori' dari objek artikel
+      const categoryId = article.kategori;
+      if (categoryId) {
+        acc[categoryId] = (acc[categoryId] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    // 2. Gabungkan list hardcode dengan jumlah (count) artikel yang sebenarnya
+    const categoriesWithCount = STATIC_CATEGORIES.map((cat) => ({
+      ...cat,
+      // Tambahkan properti 'count'
+      count: categoryCounts[cat.id] || 0, 
+    }));
+
+    // 3. Tambahkan kategori "Semua Kategori" di awal
+    return [
+      { id: "all", name: "Semua Kategori", count: articles.length },
+      ...categoriesWithCount,
+    ];
+  }, [articles]); // Hitung ulang setiap kali 'articles' berubah
+
+  // ================= FILTER (Menggunakan articleCategories yang baru) =================
+  const filteredArticles = useMemo(() => {
+    return activeCategory === "all"
       ? articles
       : articles.filter((a) => a.kategori === activeCategory);
+  }, [articles, activeCategory]);
 
-  const searchedArticles = searchQuery
-    ? filteredArticles.filter(
-        (a) =>
-          a.nama_artikel?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.deskripsi?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.tags?.some((t) =>
-            t.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-      )
-    : filteredArticles;
+  const searchedArticles = useMemo(() => {
+    if (!searchQuery) return filteredArticles;
 
+    const query = searchQuery.toLowerCase();
+    return filteredArticles.filter(
+      (a) =>
+        a.nama_artikel?.toLowerCase().includes(query) ||
+        a.deskripsi?.toLowerCase().includes(query) ||
+        a.tags?.some((t) => t.toLowerCase().includes(query))
+    );
+  }, [filteredArticles, searchQuery]);
+
+
+  // --- RENDERING ---
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -67,25 +104,35 @@ const Articles = () => {
             placeholder="Cari artikel..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-2xl px-6 py-4 border rounded-2xl"
+            className="w-full max-w-2xl px-6 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
       </section>
 
-      {/* CATEGORY */}
+      {/* CATEGORY FILTER DENGAN JUMLAH ARTIKEL */}
       <section className="py-6 bg-white border-b">
-        <div className="container-optimized flex gap-3 overflow-x-auto">
-          {categories.map((cat) => (
+        <div className="container-optimized flex gap-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+          {articleCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                 activeCategory === cat.id
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-100"
+                  ? "bg-indigo-600 text-white shadow-lg"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
               {cat.name}
+              {/* ⭐ Tambahkan Badge Jumlah (Count) */}
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  activeCategory === cat.id
+                    ? "bg-white/20 text-white"
+                    : "bg-gray-300 text-gray-700"
+                }`}
+              >
+                {cat.count}
+              </span>
             </button>
           ))}
         </div>
@@ -106,92 +153,100 @@ const Articles = () => {
           )}
 
           {!loading && searchedArticles.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {searchedArticles.map((article) => (
-                <Link
-                  key={article.id_artikel}
-                  to={`/articles/${article.id_artikel}`}
-                  className="bg-white rounded-2xl shadow-soft border overflow-hidden hover:shadow-strong transition group"
-                >
-                  {/* IMAGE */}
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={article.gambar_artikel || "/placeholder.jpg"}
-                      alt={article.nama_artikel}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                    />
+            <>
+              {/* Tambahkan indikator kategori yang sedang dilihat */}
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                 {articleCategories.find((c) => c.id === activeCategory)?.name} ({searchedArticles.length})
+              </h2>
 
-                    {/* BADGE */}
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium">
-                        {
-                          categories.find(
-                            (c) => c.id === article.kategori
-                          )?.name
-                        }
-                      </span>
-
-                      <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          article.kesulitan === "Pemula"
-                            ? "bg-green-100 text-green-800"
-                            : article.kesulitan === "Menengah"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {article.kesulitan}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* BODY */}
-                  <div className="p-6">
-                    <h3 className="font-bold text-xl mb-3 line-clamp-2 group-hover:text-indigo-600">
-                      {article.nama_artikel}
-                    </h3>
-
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                      {article.deskripsi}
-                    </p>
-
-                    {/* TAGS */}
-                    {article.tags?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {article.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* META */}
-                    <div className="flex justify-between text-sm text-gray-500">
-                      <span>{article.perkiraan_waktu_menit} min read</span>
-                      <span>❤️ {article.like_artikel}</span>
-                    </div>
-
-                    {/* AUTHOR */}
-                    <div className="flex items-center gap-3 mt-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {searchedArticles.map((article) => (
+                  <Link
+                    key={article.id_artikel}
+                    to={`/articles/${article.id_artikel}`}
+                    className="bg-white rounded-2xl shadow-soft border overflow-hidden hover:shadow-strong transition group"
+                  >
+                    {/* IMAGE */}
+                    <div className="relative h-48 overflow-hidden">
                       <img
-                        src={article.author?.avatar || "/avatar-default.png"}
-                        className="w-8 h-8 rounded-full object-cover"
+                        src={article.gambar_artikel || "/placeholder.jpg"}
+                        alt={article.nama_artikel}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                       />
-                      <div>
-                        <p className="text-sm font-medium">
-                          {article.author?.nama}
-                        </p>
-                        <p className="text-xs text-gray-500">Penulis</p>
+
+                      {/* BADGE */}
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium">
+                          {
+                            // Mengambil nama kategori dari list yang sudah di-memo
+                            articleCategories.find(
+                              (c) => c.id === article.kategori
+                            )?.name
+                          }
+                        </span>
+
+                        <span
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            article.kesulitan === "Pemula"
+                              ? "bg-green-100 text-green-800"
+                              : article.kesulitan === "Menengah"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {article.kesulitan}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+
+                    {/* BODY */}
+                    <div className="p-6">
+                      <h3 className="font-bold text-xl mb-3 line-clamp-2 group-hover:text-indigo-600">
+                        {article.nama_artikel}
+                      </h3>
+
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                        {article.deskripsi}
+                      </p>
+
+                      {/* TAGS */}
+                      {article.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {article.tags.map((tag, i) => (
+                            <span
+                              key={i}
+                              className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* META */}
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>{article.perkiraan_waktu_menit} min read</span>
+                        <span>❤️ {article.like_artikel}</span>
+                      </div>
+
+                      {/* AUTHOR */}
+                      <div className="flex items-center gap-3 mt-4 pt-4 border-t">
+                        <img
+                          src={article.author?.avatar || "/avatar-default.png"}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">
+                            {article.author?.nama}
+                          </p>
+                          <p className="text-xs text-gray-500">Penulis</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </section>

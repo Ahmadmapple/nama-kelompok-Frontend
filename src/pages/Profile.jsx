@@ -4,7 +4,6 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { Camera } from "lucide-react";
 
-// (Komponen EditInput dan getAvatarUrl tetap sama)
 const EditInput = ({
   label,
   name,
@@ -45,41 +44,34 @@ const getAvatarUrl = (name, existingAvatarUrl) => {
     name
   )}&size=${size}&color=${color}&background=${background}&bold=true`;
 };
-// =========================================================
 
-// Komponen Profile
 const Profile = () => {
   const { user, updateProfile, fetchProfile } = useAuth();
 
-  // === STATE UNTUK DATA PROFIL (dari DB) ===
   const [profileData, setProfileData] = useState(null);
-  // Mulai dari FALSE, karena header profil tidak perlu menunggu
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true); 
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
-  // === STATE UNTUK EDIT PROFIL ===
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    name: user?.name || "", 
+    name: user?.name || "",
     email: user?.email || "",
-    tempAvatar: getAvatarUrl(user?.name || "User", user?.avatar), // Inisialisasi cepat
+    tempAvatar: getAvatarUrl(user?.name || "User", user?.avatar),
     avatarFile: null,
   });
-  
-  // UseCallback untuk fungsi fetch agar lebih stabil
+
   const fetchProfileData = useCallback(async () => {
     if (!user || !fetchProfile) return;
 
     if (!profileData) {
       setIsLoadingProfile(true);
     }
-    
+
     try {
       const data = await fetchProfile();
 
       if (data) {
         setProfileData(data);
 
-        // Update editForm dengan data yang lebih akurat dari server
         const initialAvatar = getAvatarUrl(
           data.name || user.name,
           data.avatar || user.avatar
@@ -91,32 +83,25 @@ const Profile = () => {
           tempAvatar: initialAvatar,
           avatarFile: null,
         });
-      } else {
-        console.error("Data profil kosong dari backend.");
       }
     } catch (error) {
       console.error("Error fetching profile data:", error);
-      // Optional: Tampilkan error di UI
     } finally {
       setIsLoadingProfile(false);
     }
   }, [user, fetchProfile, profileData]);
 
-  // EFFECT: Mengambil Data Profil dari Backend (Hanya dipanggil sekali saat user ada)
   useEffect(() => {
-    // Hanya fetch jika user ada DAN profileData belum ada
     if (user && !profileData) {
       fetchProfileData();
     }
-  }, [user, profileData, fetchProfileData]); 
-  
-  // Handle change tetap sama
+  }, [user, profileData, fetchProfileData]);
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle file change tetap sama
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -139,14 +124,12 @@ const Profile = () => {
       }
 
       await updateProfile(formData);
-      
-      // *** PERBAIKAN #1: Sinkronisasi setelah Simpan ***
-      // Panggil ulang fetchProfileData untuk mendapatkan data terbaru dan statistik
+
+      // PERBAIKAN #1: Sinkronisasi setelah Simpan
       await fetchProfileData();
 
       setIsEditing(false);
       alert("Profil berhasil diperbarui!");
-
     } catch (err) {
       console.error(err);
       alert("Gagal menyimpan perubahan profil.");
@@ -154,9 +137,9 @@ const Profile = () => {
   };
 
   const handleCancel = () => {
-    // *** PERBAIKAN #2: Cancel harus kembali ke data profileData server, bukan hanya user AuthContext ***
-    const source = profileData || user; 
-    
+    // PERBAIKAN #2: Cancel harus kembali ke data profileData server yang sudah ada
+    const source = profileData || user;
+
     setEditForm({
       name: source.name || "",
       email: source.email || "",
@@ -166,39 +149,39 @@ const Profile = () => {
     setIsEditing(false);
   };
 
-  // =================================================
-
-  // KONDISI UTAMA: User belum login
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Akses Ditolak</h2>
-          <p className="text-gray-600">Mohon login untuk melihat halaman profil Anda.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Akses Ditolak
+          </h2>
+          <p className="text-gray-600">
+            Mohon login untuk melihat halaman profil Anda.
+          </p>
         </div>
       </div>
     );
   }
 
-  // Gunakan profileData jika ada, jika tidak, gunakan user (untuk header)
-  const data = profileData || user; 
-  const levelProgress = data.xp && data.xpToNextLevel ? (data.xp / data.xpToNextLevel) * 100 : 0;
-  const literacyPercentage = Math.min(Math.max(data.literacyScore || 0, 0), 100);
-
+  const data = profileData || user;
+  const levelProgress =
+    data.xp && data.xpToNextLevel ? (data.xp / data.xpToNextLevel) * 100 : 0;
+  const literacyPercentage = Math.min(
+    Math.max(data.literacyScore || 0, 0),
+    100
+  );
 
   return (
     <div className="mt-12 min-h-screen bg-gray-50">
       <Navbar />
 
-      {/* Profile Header (Tampil CEPAT/Optimistic, menggunakan data yang pasti ada: user) */}
       <div className="bg-white border-b border-gray-200">
         <div className="container-optimized py-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            
-            {/* Avatar Section */}
             <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
               <img
-                src={editForm.tempAvatar} 
+                src={editForm.tempAvatar}
                 alt={editForm.name}
                 className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-lg object-cover"
               />
@@ -221,21 +204,25 @@ const Profile = () => {
               />
             </div>
 
-            {/* Profile Info / Edit Form */}
             <div className="flex-1 w-full md:w-auto">
-              {/* ... (Blok Display Mode dan Edit Mode tetap sama, menggunakan editForm) ... */}
               {!isEditing ? (
                 <>
                   <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                     {editForm.name}
                   </h1>
-                  <p className="text-gray-600 mt-1">
-                    {editForm.email}
-                  </p>
+                  <p className="text-gray-600 mt-1">{editForm.email}</p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    {/* Lencana Role Pengguna (Contoh: user) */}
                     <span className="inline-block px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full capitalize">
                       {data.role || "User"}
                     </span>
+
+                    {/* Lencana Status Pengguna (Contoh: teacher) */}
+                    {data.statusPengguna && (
+                      <span className="inline-block px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full capitalize">
+                        {data.statusPengguna}
+                      </span>
+                    )}
 
                     <span className="text-sm text-gray-500">
                       Member sejak{" "}
@@ -264,8 +251,6 @@ const Profile = () => {
                 </div>
               )}
             </div>
-
-            {/* Action & Score */}
             <div className="flex flex-col gap-3 ml-auto">
               {isEditing ? (
                 <div className="flex gap-2">
@@ -295,51 +280,40 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Main Content (Stats, Goals, History) *** OPTIMISTIC LOADING START HERE *** */}
       <div className="container-optimized py-8">
         {isLoadingProfile || !profileData ? (
-          // SKELETON LOADING LOKAL: Tampilkan ini selama fetchProfile berjalan
-          // Jika profileData tidak ada (null) dan sedang loading, tampilkan skeleton
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Skeleton Kolom Kiri */}
             <div className="lg:col-span-2 space-y-6 p-6 bg-white rounded-2xl shadow-soft border border-gray-100 animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-40 bg-gray-100 rounded-lg mb-4"></div>
-                <div className="h-20 bg-gray-100 rounded-lg"></div>
+              <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="h-40 bg-gray-100 rounded-lg mb-4"></div>
+              <div className="h-20 bg-gray-100 rounded-lg"></div>
             </div>
 
-            {/* Skeleton Kolom Kanan */}
             <div className="space-y-6">
-                <div className="p-6 bg-white rounded-2xl shadow-soft border border-gray-100 animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-                    <div className="h-20 bg-gray-100 rounded-lg"></div>
+              <div className="p-6 bg-white rounded-2xl shadow-soft border border-gray-100 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
+                <div className="h-20 bg-gray-100 rounded-lg"></div>
+              </div>
+              <div className="p-6 bg-white rounded-2xl shadow-soft border border-gray-100 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="h-10 bg-gray-100 rounded"></div>
+                  <div className="h-10 bg-gray-100 rounded"></div>
+                  <div className="h-10 bg-gray-100 rounded"></div>
+                  <div className="h-10 bg-gray-100 rounded"></div>
                 </div>
-                <div className="p-6 bg-white rounded-2xl shadow-soft border border-gray-100 animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-                    <div className="grid grid-cols-4 gap-2">
-                        <div className="h-10 bg-gray-100 rounded"></div>
-                        <div className="h-10 bg-gray-100 rounded"></div>
-                        <div className="h-10 bg-gray-100 rounded"></div>
-                        <div className="h-10 bg-gray-100 rounded"></div>
-                    </div>
-                </div>
+              </div>
             </div>
           </div>
         ) : (
-          // KONTEN PROFIL LENGKAP: Tampilkan jika profileData sudah tersedia
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Stats & Goals (Menggunakan data dari profileData) */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Literacy Score Card (Pastikan semua properti diakses dengan aman, e.g., data.skills?.map) */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Literacy Score & Progress
                 </h2>
-                {/* ... (Kode Literacy Score, Weekly Goals, Reading History) ... */}
-                {/* Main Score & Skills */}
                 <div className="text-center mb-6">
                   <div className="relative w-32 h-32 mx-auto">
-                    {/* Background Circle */}
                     <div
                       className="w-32 h-32 rounded-full bg-gray-200"
                       style={{
@@ -349,7 +323,6 @@ const Profile = () => {
                       }}
                     ></div>
 
-                    {/* Inner Circle (white) */}
                     <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center">
                       <div className="text-3xl font-bold text-gray-900">
                         {data.literacyScore}
@@ -359,31 +332,29 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Skills Progress */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-gray-900">
                     Kemampuan Literasi
                   </h3>
                   {data.skills?.map((skill, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-700">{skill.name}</span>
-                          <span className="text-gray-900 font-medium">
-                            {skill.level}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
-                            style={{ width: `${skill.level}%` }}
-                          ></div>
-                        </div>
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700">{skill.name}</span>
+                        <span className="text-gray-900 font-medium">
+                          {skill.level}%
+                        </span>
                       </div>
-                    ))}
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${skill.level}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Weekly Goals */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900">
@@ -395,50 +366,49 @@ const Profile = () => {
                 </div>
                 <div className="space-y-4">
                   {data.weeklyGoals?.map((goal, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              goal.progress === 100
-                                ? "bg-green-100 text-green-600"
-                                : "bg-blue-100 text-blue-600"
-                            }`}
-                          >
-                            {goal.progress === 100 ? "✓" : "🎯"}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {goal.goal}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {goal.completed}/{goal.target} selesai
-                            </div>
-                          </div>
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            goal.progress === 100
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-100 text-blue-600"
+                          }`}
+                        >
+                          {goal.progress === 100 ? "✓" : "🎯"}
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-gray-900">
-                            {goal.progress}%
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {goal.goal}
                           </div>
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                goal.progress === 100
-                                  ? "bg-green-500"
-                                  : "bg-blue-500"
-                              }`}
-                              style={{ width: `${goal.progress}%` }}
-                            ></div>
+                          <div className="text-sm text-gray-500">
+                            {goal.completed}/{goal.target} selesai
                           </div>
                         </div>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">
+                          {goal.progress}%
+                        </div>
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              goal.progress === 100
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }`}
+                            style={{ width: `${goal.progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Reading History */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Riwayat Bacaan Terbaru
@@ -486,9 +456,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Right Column - Achievements & Stats */}
             <div className="space-y-6">
-              {/* Level Progress */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Progress Level
@@ -516,7 +484,6 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Activity Streak */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900">
@@ -545,7 +512,6 @@ const Profile = () => {
                 </p>
               </div>
 
-              {/* Badges & Achievements */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Lencana & Prestasi
@@ -553,25 +519,25 @@ const Profile = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   {data.badges?.map((badge) => (
-                      <div
-                        key={badge.id}
-                        className={`p-3 rounded-lg text-center ${
-                          badge.earned
-                            ? "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200"
-                            : "bg-gray-50 border border-gray-200 opacity-50"
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">{badge.icon}</div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {badge.name}
-                        </div>
-                        {badge.earned && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {badge.date}
-                          </div>
-                        )}
+                    <div
+                      key={badge.id}
+                      className={`p-3 rounded-lg text-center ${
+                        badge.earned
+                          ? "bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200"
+                          : "bg-gray-50 border border-gray-200 opacity-50"
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{badge.icon}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {badge.name}
                       </div>
-                    ))}
+                      {badge.earned && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {badge.date}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="mt-4 text-center">
@@ -579,12 +545,12 @@ const Profile = () => {
                     {data.badges
                       ? data.badges.filter((b) => b.earned).length
                       : 0}{" "}
-                    dari {data.badges ? data.badges.length : 0} lencana terkumpul
+                    dari {data.badges ? data.badges.length : 0} lencana
+                    terkumpul
                   </div>
                 </div>
               </div>
 
-              {/* Quick Stats */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   Statistik Cepat
@@ -618,17 +584,19 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Community Ranking */}
               <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
                 <h2 className="text-xl font-bold mb-2">Peringkat Komunitas</h2>
                 <div className="text-3xl font-bold mb-1">
                   #{data.communityStats?.rank || "--"}
                 </div>
                 <div className="text-sm opacity-90">
-                  Dari {data.communityStats?.totalUsers?.toLocaleString() || "--"} pengguna
+                  Dari{" "}
+                  {data.communityStats?.totalUsers?.toLocaleString() || "--"}{" "}
+                  pengguna
                 </div>
                 <div className="mt-3 text-sm">
-                  Impact Score: <strong>{data.communityStats?.impactScore || "--"}</strong>
+                  Impact Score:{" "}
+                  <strong>{data.communityStats?.impactScore || "--"}</strong>
                 </div>
               </div>
             </div>

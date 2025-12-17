@@ -8,16 +8,17 @@ import {
   Image,
   Trophy,
   AlertCircle,
-  Sliders, // Ikon untuk Kesulitan
-  Clock, // Ikon baru untuk Batas Waktu
+  Sliders, 
+  Clock, 
 } from "lucide-react";
+// Asumsi komponen-komponen ini ada di direktori yang benar
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import axios from "axios";
 
 // --- KONSTANTA ---
 
-const API_URL = "http://localhost:3000/api/kuis/create-kuis";
+const API_URL = "http://localhost:3000/api/kuis/create-kuis"; 
 
 const CATEGORIES = [
   { value: "digital-literacy", label: "Literasi Digital" },
@@ -33,27 +34,39 @@ const DIFFICULTIES = [
   { value: "hard", label: "Lanjutan" },
 ];
 
+// Konstanta untuk bobot skor per tingkat kesulitan
+const DIFFICULTY_WEIGHTS = {
+  easy: 0.8,
+  medium: 1.0,
+  hard: 1.2,
+};
+
 const initialQuestionState = {
-  id: "", // Untuk key dan manipulasi state
+  id: "", 
   question: "",
   options: ["", "", "", ""],
-  correctAnswer: 0, // Indeks (0, 1, 2, atau 3)
+  correctAnswer: 0, 
   explanation: "",
   learningTips: "",
-  relatedConcepts: "", // String, diparsing saat submit
+  relatedConcepts: "", 
   difficulty: "easy",
-  timeLimit: 30, // Dalam detik
+  timeLimit: 30, 
+  // Hapus properti 'score' karena akan dihitung secara dinamis
 };
 
 const initialQuizState = {
   title: "",
   description: "",
   category: CATEGORIES[0].value,
-  image: "", // Nama file/URL gambar cover
-  tags: "", // String, diparsing saat submit
-  difficulty: DIFFICULTIES[0].value,
-  // totalTime dihapus karena waktu diatur per pertanyaan (timeLimit)
+  image: "", 
+  tags: "", 
+  difficulty: DIFFICULTIES[0].value, 
 };
+
+// Fungsi untuk menghasilkan ID unik
+const generateUniqueId = () =>
+  Date.now().toString(36) + Math.random().toString(36).substring(2);
+
 
 // --- KOMPONEN UTAMA ---
 
@@ -63,7 +76,7 @@ const CreateQuizPage = () => {
   const [questions, setQuestions] = useState([
     {
       ...initialQuestionState,
-      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+      id: generateUniqueId(),
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,11 +84,6 @@ const CreateQuizPage = () => {
   const [coverImagePreview, setCoverImagePreview] = useState(null);
   const [submissionError, setSubmissionError] = useState(null);
 
-  // Fungsi untuk menghasilkan ID unik
-  const generateUniqueId = () =>
-    Date.now().toString(36) + Math.random().toString(36).substring(2);
-
-  // Cleanup object URL untuk menghindari kebocoran memori
   useEffect(() => {
     return () => {
       if (coverImagePreview) {
@@ -84,7 +92,12 @@ const CreateQuizPage = () => {
     };
   }, [coverImagePreview]);
 
-  // --- HANDLER MEMOIZED ---
+  // --- HANDLER MEMOIZED (TIDAK ADA PERUBAHAN SIGNIFIKAN DI SINI) ---
+
+  const handleMetadataChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setQuizMetadata((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
   const handleQuestionChange = useCallback((id, name, value) => {
     setQuestions((prev) =>
@@ -119,23 +132,17 @@ const CreateQuizPage = () => {
     setQuestions((prev) => prev.filter((q) => q.id !== idToRemove));
   }, []);
 
-  const handleMetadataChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setQuizMetadata((prev) => ({ ...prev, [name]: value }));
-  }, []);
-
   const handleFileChange = useCallback(
     (e) => {
       const file = e.target.files[0];
 
-      // Cleanup pratinjau lama
       if (coverImagePreview) {
         URL.revokeObjectURL(coverImagePreview);
       }
 
       if (file) {
         setCoverImageFile(file);
-        setCoverImagePreview(URL.createObjectURL(file));
+        setCoverImagePreview(URL.createObjectURL(file)); 
         setQuizMetadata((prev) => ({ ...prev, image: file.name }));
       } else {
         setCoverImageFile(null);
@@ -151,41 +158,52 @@ const CreateQuizPage = () => {
   const validateForm = () => {
     setSubmissionError(null);
 
+    // 1. Validasi Gambar Cover
     if (!coverImageFile) {
       setSubmissionError("Silakan unggah gambar cover kuis terlebih dahulu.");
       return false;
     }
 
+    // 2. Validasi Jumlah Pertanyaan
     if (questions.length === 0) {
       setSubmissionError("Kuis harus memiliki setidaknya 1 pertanyaan!");
       return false;
     }
 
+    // 3. Validasi Metadata Kuis
     if (!quizMetadata.title.trim() || !quizMetadata.description.trim()) {
-      setSubmissionError("Judul dan Deskripsi kuis harus diisi.");
+      setSubmissionError("Judul dan Deskripsi kuis wajib diisi.");
       return false;
     }
 
-    // Validasi setiap pertanyaan
+    // 4. Validasi Setiap Pertanyaan
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      const qNum = `#${i + 1}`;
+      
       if (!q.question.trim()) {
-        setSubmissionError(`Pertanyaan #${i + 1}: Teks pertanyaan wajib diisi.`);
+        setSubmissionError(`Pertanyaan ${qNum}: Teks pertanyaan wajib diisi.`);
         return false;
       }
+      
+      // Semua 4 opsi harus diisi
       if (q.options.some((o) => !o.trim())) {
         setSubmissionError(
-          `Pertanyaan #${i + 1}: Semua 4 pilihan jawaban wajib diisi.`
+          `Pertanyaan ${qNum}: Semua 4 pilihan jawaban wajib diisi.`
         );
         return false;
       }
+      
       if (!q.explanation.trim()) {
-        setSubmissionError(`Pertanyaan #${i + 1}: Penjelasan jawaban wajib diisi.`);
+        setSubmissionError(`Pertanyaan ${qNum}: Penjelasan jawaban wajib diisi.`);
         return false;
       }
-      if (Number(q.timeLimit) <= 0) {
+      
+      // Batas waktu harus valid
+      const timeLimit = Number(q.timeLimit);
+      if (isNaN(timeLimit) || timeLimit <= 0) {
         setSubmissionError(
-          `Pertanyaan #${i + 1}: Batas waktu harus lebih dari 0 detik.`
+          `Pertanyaan ${qNum}: Batas waktu harus berupa angka yang valid dan lebih dari 0 detik.`
         );
         return false;
       }
@@ -194,6 +212,9 @@ const CreateQuizPage = () => {
     return true;
   };
 
+  /**
+   * Menangani proses pengiriman formulir ke API backend.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -205,20 +226,63 @@ const CreateQuizPage = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Siapkan data pertanyaan
-      const finalQuestions = questions.map((q) => ({
+      // --- LOGIKA PENGHITUNGAN SKOR DINAMIS ---
+      let calculatedQuestions = questions.map(q => ({ ...q }));
+
+      if (calculatedQuestions.length === 1) {
+        // Aturan 2: Jika hanya 1 soal, skornya pasti 100
+        calculatedQuestions[0].score = 100;
+      } else {
+        // Aturan 3: Hitung skor berdasarkan bobot kesulitan
+        
+        // 1. Hitung total bobot dari semua pertanyaan
+        const totalWeight = calculatedQuestions.reduce(
+          (sum, q) => sum + (DIFFICULTY_WEIGHTS[q.difficulty] || 1.0),
+          0
+        );
+
+        // 2. Hitung unit dasar skor (Total 100 dibagi total bobot)
+        const baseScoreUnit = 100 / totalWeight;
+
+        let totalCalculatedScore = 0;
+        
+        // 3. Hitung skor tiap soal dan bulatkan ke bilangan bulat
+        calculatedQuestions = calculatedQuestions.map((q, index) => {
+          const weight = DIFFICULTY_WEIGHTS[q.difficulty] || 1.0;
+          
+          // Bulatkan skor ke bilangan bulat terdekat
+          let score = Math.round(baseScoreUnit * weight); 
+          
+          totalCalculatedScore += score;
+          
+          return { ...q, score };
+        });
+        
+        // 4. Atasi error pembulatan (pastikan total skor adalah 100)
+        if (calculatedQuestions.length > 0) {
+          const difference = 100 - totalCalculatedScore;
+          // Tambahkan/kurangkan selisih ke soal terakhir
+          calculatedQuestions[calculatedQuestions.length - 1].score += difference;
+        }
+      }
+      // --- SELESAI LOGIKA PENGHITUNGAN SKOR DINAMIS ---
+
+
+      // 1. Siapkan data pertanyaan akhir (menggunakan hasil hitungan skor)
+      const finalQuestions = calculatedQuestions.map((q) => ({
+        // Menghapus 'id' karena hanya digunakan untuk state management lokal
         question: q.question,
-        options: q.options.filter((o) => o.trim() !== ""), // Filter out empty options just in case
+        options: q.options.map(o => o.trim()), 
         correctAnswer: Number(q.correctAnswer),
         explanation: q.explanation,
         learningTips: q.learningTips,
-        // Konversi string koma menjadi array of string
         relatedConcepts: q.relatedConcepts
           .split(",")
           .map((c) => c.trim())
           .filter((c) => c.length > 0),
         difficulty: q.difficulty,
         timeLimit: Number(q.timeLimit),
+        score: q.score, // <--- SKOR SUDAH DIMASUKKAN DI SINI
       }));
 
       // 2. Metadata kuis
@@ -226,33 +290,33 @@ const CreateQuizPage = () => {
         title: quizMetadata.title,
         description: quizMetadata.description,
         category: quizMetadata.category,
-        difficulty: quizMetadata.difficulty, // Kesulitan kuis keseluruhan
-        // Konversi string koma menjadi array of string
+        difficulty: quizMetadata.difficulty, 
         tags: quizMetadata.tags
           .split(",")
           .map((t) => t.trim())
           .filter((t) => t.length > 0),
-        tips: "", // Jika ada field tips global
       };
 
-      // 3. Buat FormData
+      // 3. Buat FormData untuk mengirim file dan JSON
       const formData = new FormData();
       formData.append("metadata", JSON.stringify(metadata));
       formData.append("questions", JSON.stringify(finalQuestions));
-      formData.append("gambar", coverImageFile); // Nama field harus sesuai backend: 'gambar'
+      formData.append("gambar", coverImageFile); 
 
       // 4. Kirim ke backend
-      const token = localStorage.getItem("mindloop_token");
+      const token = localStorage.getItem("mindloop_token"); 
+      
       const response = await axios.post(API_URL, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data", 
+          Authorization: `Bearer ${token}`, 
         },
       });
 
       console.log("RESPON BACKEND:", response.data);
       alert(`Kuis "${metadata.title}" berhasil dibuat!`);
-      navigate("/quiz"); // Arahkan ke halaman daftar kuis
+      navigate("/quiz"); 
+      
     } catch (error) {
       console.error("Gagal membuat kuis:", error.response || error.message);
       const errorMessage =
@@ -278,13 +342,15 @@ const CreateQuizPage = () => {
               Buat Kuis Baru
             </h1>
             <p className="text-gray-500 mt-2">
-              Definisikan metadata dan pertanyaan untuk kuis interaktif Anda.
+              Skor per soal akan dihitung otomatis agar total skor kuis adalah 100.
             </p>
+            {/* Display Error Message */}
             {submissionError && (
               <div
-                className="mt-4 p-4 text-sm text-red-800 rounded-lg bg-red-100"
+                className="mt-4 p-4 text-sm text-red-800 rounded-lg bg-red-100 flex items-center gap-2"
                 role="alert"
               >
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">Kesalahan:</span>{" "}
                 {submissionError}
               </div>
@@ -292,7 +358,7 @@ const CreateQuizPage = () => {
           </header>
 
           <form onSubmit={handleSubmit}>
-            {/* METADATA KUIS */}
+            {/* SECTION: METADATA KUIS (Tidak ada perubahan di sini) */}
             <div className="bg-white p-8 rounded-xl shadow-strong border border-indigo-100 mb-10">
               <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-3 flex items-center gap-2">
                 <Image className="w-5 h-5 text-indigo-500" />
@@ -375,7 +441,7 @@ const CreateQuizPage = () => {
                     ))}
                   </select>
                 </div>
-                {/* 2. Kesulitan Kuis */}
+                {/* 2. Kesulitan Kuis Global */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Kesulitan Kuis <span className="text-red-500">*</span>
@@ -411,7 +477,7 @@ const CreateQuizPage = () => {
               </div>
             </div>
 
-            {/* PERTANYAAN KUIS */}
+            {/* SECTION: PERTANYAAN KUIS */}
             <div className="mb-10">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -480,9 +546,11 @@ const CreateQuizPage = () => {
                       <div className="space-y-3">
                         {question.options.map((option, oIndex) => (
                           <div key={oIndex} className="flex items-start gap-4">
+                            {/* Label Opsi (A, B, C, D) */}
                             <span className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold rounded-xl text-lg mt-1">
                               {String.fromCharCode(65 + oIndex)}
                             </span>
+                            {/* Input Opsi */}
                             <input
                               type="text"
                               value={option}
@@ -506,8 +574,9 @@ const CreateQuizPage = () => {
                       </div>
                     </div>
 
-                    {/* QUICK CONTROLS */}
+                    {/* QUICK CONTROLS: Jawaban Benar, Batas Waktu, Kesulitan Pertanyaan */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 p-6 bg-gray-50 rounded-xl">
+                      {/* Jawaban Benar */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Jawaban Benar
@@ -523,6 +592,7 @@ const CreateQuizPage = () => {
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-medium"
                         >
+                          {/* Opsi Jawaban Benar */}
                           {question.options.map((_, oIndex) => (
                             <option key={oIndex} value={oIndex}>
                               {String.fromCharCode(65 + oIndex)}
@@ -531,6 +601,7 @@ const CreateQuizPage = () => {
                         </select>
                       </div>
 
+                      {/* Batas Waktu */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                           <Clock className="w-4 h-4 text-indigo-500" />
@@ -545,7 +616,7 @@ const CreateQuizPage = () => {
                             handleQuestionChange(
                               question.id,
                               "timeLimit",
-                              Number(e.target.value)
+                              e.target.value
                             )
                           }
                           required
@@ -553,6 +624,7 @@ const CreateQuizPage = () => {
                         />
                       </div>
 
+                      {/* Kesulitan Pertanyaan */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
                           <Sliders className="w-4 h-4 text-indigo-500" />
@@ -571,11 +643,19 @@ const CreateQuizPage = () => {
                         >
                           {DIFFICULTIES.map((diff) => (
                             <option key={diff.value} value={diff.value}>
-                              {diff.label}
+                              {diff.label} ({DIFFICULTY_WEIGHTS[diff.value] * 10}x)
                             </option>
                           ))}
                         </select>
                       </div>
+                      
+                      {/* CATATAN TAMBAHAN UNTUK SKOR OTOMATIS */}
+                       {questions.length > 1 && (
+                          <div className="md:col-span-3 text-sm text-gray-500 mt-2 p-3 bg-white rounded-lg border border-indigo-100">
+                             Skor soal ini akan dihitung otomatis saat kuis disimpan, berdasarkan kesulitan yang dipilih agar total skor kuis adalah 100.
+                          </div>
+                      )}
+                      
                     </div>
 
                     {/* EXPLANATION */}
@@ -675,7 +755,7 @@ const CreateQuizPage = () => {
                     Menyimpan Kuis...
                   </>
                 ) : (
-                  `Simpan dan Publikasikan Kuis (${questions.length} Pertanyaan)`
+                  `Simpan dan Publikasikan Kuis (${questions.length} Pertanyaan) - Total Skor 100`
                 )}
               </button>
             </div>
