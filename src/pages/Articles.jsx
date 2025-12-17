@@ -77,33 +77,30 @@ const Articles = () => {
   const handleArticleClick = async (article) => {
     const token = localStorage.getItem("mindloop_token");
 
-    if (!token) {
-      // Kalau user belum login, redirect ke login
-      navigate("/login");
-      return;
+    // Jika user login, update riwayat dan progres
+    if (token) {
+      const headers = { Authorization: `Bearer ${token}` };
+
+      try {
+        // 1️⃣ Catat riwayat baca artikel
+        await axios.post(
+          `http://localhost:3000/api/article/${article.id_artikel}/riwayat-baca`,
+          {},
+          { headers }
+        );
+
+        // 2️⃣ Update progres pengguna (waktu membaca & jumlah artikel dibuka)
+        await axios.post(
+          `http://localhost:3000/api/article/${article.id_artikel}/progres`,
+          { durasi: Number(article.perkiraan_waktu_menit) },
+          { headers }
+        );
+      } catch (err) {
+        console.error("Gagal update riwayat/progres:", err.message);
+      }
     }
 
-    const headers = { Authorization: `Bearer ${token}` };
-
-    try {
-      // 1️⃣ Catat riwayat baca artikel
-      await axios.post(
-        `http://localhost:3000/api/article/${article.id_artikel}/riwayat-baca`,
-        {},
-        { headers }
-      );
-
-      // 2️⃣ Update progres pengguna (waktu membaca & jumlah artikel dibuka)
-      await axios.post(
-        `http://localhost:3000/api/article/${article.id_artikel}/progres`,
-        { durasi: Number(article.perkiraan_waktu_menit) },
-        { headers }
-      );
-    } catch (err) {
-      console.error("Gagal update riwayat/progres:", err.message);
-    }
-
-    // 3️⃣ Navigate ke detail artikel
+    // 3️⃣ Navigate ke detail artikel (guest dan user login sama-sama bisa)
     navigate(`/articles/${article.id_artikel}`);
   };
 

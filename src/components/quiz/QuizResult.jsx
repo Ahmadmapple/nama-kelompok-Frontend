@@ -1,6 +1,6 @@
 import React from 'react';
 
-const QuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBack }) => {
+const QuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBack, xpEarned = 0, leveledUp = false }) => {
   const correctAnswers = userAnswers.filter((answer, index) => 
     answer === questions[index].correctAnswer
   ).length;
@@ -83,9 +83,27 @@ const QuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBack }) =>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             {getScoreMessage(score)}
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-4">
             Anda menjawab {correctAnswers} dari {questions.length} soal dengan benar
           </p>
+
+          {/* XP Earned Display */}
+          {xpEarned > 0 && (
+            <div className="mb-6">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-full px-6 py-3">
+                <span className="text-2xl">⭐</span>
+                <div className="text-left">
+                  <div className="text-sm text-gray-600">XP Diperoleh</div>
+                  <div className="text-2xl font-bold text-indigo-600">+{xpEarned} XP</div>
+                </div>
+              </div>
+              {leveledUp && (
+                <div className="mt-3 text-sm font-semibold text-green-600 animate-bounce">
+                  🎉 Level Up!
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

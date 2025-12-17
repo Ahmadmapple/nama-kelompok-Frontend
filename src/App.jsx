@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { EnhancedQuizProvider } from "./context/EnhancedQuizContext";
+import { AlertProvider } from "./context/AlertContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/auth/Login";
@@ -134,37 +135,39 @@ const AppContent = () => {
             }
           />
 
-          {/* 404 */}
-          <Route
-            path="*"
-            element={
-              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
-                  <p className="text-xl text-gray-600 mb-8">
-                    Halaman tidak ditemukan
-                  </p>
-                  <a href="/" className="btn btn-primary">
-                    Kembali ke Beranda
-                  </a>
-                </div>
-              </div>
-            }
-          />
-        </Routes>
-      </div>
-    </Router>
-  );
+           {/* 404 */}
+          <Route
+            path="*"
+            element={
+              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+                  <p className="text-xl text-gray-600 mb-8">
+                    Halaman tidak ditemukan
+                  </p>
+                  <a href="/" className="btn btn-primary">
+                    Kembali ke Beranda
+                  </a>
+                </div>
+              </div>
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
+  );
 };
 
 function App() {
-  return (
-    <AuthProvider>
-      <EnhancedQuizProvider>
-        <AppContent />
-      </EnhancedQuizProvider>
-    </AuthProvider>
-  );
+  return (
+    <AuthProvider>
+      <AlertProvider>
+        <EnhancedQuizProvider>
+          <AppContent />
+        </EnhancedQuizProvider>
+      </AlertProvider>
+    </AuthProvider>
+  );
 }
 
 export default App;

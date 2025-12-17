@@ -194,22 +194,24 @@ export const AuthProvider = ({ children }) => {
       const errMsg =
         error.response?.data?.message || "Terjadi kesalahan server";
 
-      setAuthError(errMsg);
-      return { success: false };
-    }
-  };
+      setAuthError(errMsg);
+      return { success: false };
+    }
+  };
 
-  // Logout function
-  const logout = () => {
-    setUser(null);
-    clearAuthStorage();
-    setAuthSuccess("Anda telah logout");
-  };
+  // Logout function
+  const logout = () => {
+    setUser(null);
+    clearAuthStorage();
+    // Clear guest quiz data saat logout
+    localStorage.removeItem("mindloop_completed_quizzes_guest");
+    setAuthSuccess("Anda telah logout");
+  };
 
-  // Update profile function
-  const updateProfile = async (formData) => {
-    setAuthError(null);
-    setAuthSuccess(null);
+  // Update profile function
+  const updateProfile = async (formData) => {
+    setAuthError(null);
+    setAuthSuccess(null);
 
     try {
       const token = localStorage.getItem("mindloop_token");

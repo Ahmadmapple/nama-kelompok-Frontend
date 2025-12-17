@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+import { useAlert } from "../context/AlertContext";
 
 /* ================================
    🔹 KATEGORI MAPPING
@@ -17,6 +18,7 @@ const CATEGORY_LABEL = {
 
 const ArticleDetail = () => {
   const { id } = useParams();
+  const { showAlert } = useAlert();
 
   const [article, setArticle] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
@@ -47,8 +49,11 @@ const ArticleDetail = () => {
 
         if (!isMounted) return;
 
+        console.log('Article data:', res.data);
+        console.log('is_liked from backend:', res.data.is_liked);
+        
         setArticle(res.data);
-        setIsLiked(Boolean(res.data.is_liked));
+        setIsLiked(res.data.is_liked === true);
         setLoading(false);
 
         // fire & forget view counter
@@ -103,7 +108,11 @@ const ArticleDetail = () => {
 
     const token = localStorage.getItem("mindloop_token");
     if (!token) {
-      alert("Silakan login terlebih dahulu!");
+      showAlert({
+        title: "Login Diperlukan",
+        message: "Silakan login terlebih dahulu untuk menyukai artikel!",
+        type: "warning"
+      });
       return;
     }
 
@@ -209,9 +218,48 @@ const ArticleDetail = () => {
                 dangerouslySetInnerHTML={{ __html: article.isi_artikel }}
               />
 
-              <button onClick={handleLike}>
-                {isLiked ? "❤️ Disukai" : "🤍 Suka"}
-              </button>
+              {/* Stats & Actions */}
+              <div className="border-t border-b border-gray-200 py-6 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">👁️</span>
+                      <span className="text-gray-600">{article.view_artikel || 0} views</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">❤️</span>
+                      <span className="text-gray-600">{article.like_artikel || 0} likes</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleLike}
+                      className={`px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
+                        isLiked 
+                          ? 'bg-red-500 text-white hover:bg-red-600' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {isLiked ? "❤️ Disukai" : "🤍 Suka"}
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        showAlert({
+                          title: "Link Disalin!",
+                          message: "Link artikel telah disalin ke clipboard",
+                          type: "success"
+                        });
+                      }}
+                      className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-all transform hover:scale-105"
+                    >
+                      🔗 Share
+                    </button>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </article>

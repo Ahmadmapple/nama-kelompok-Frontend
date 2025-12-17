@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import axios from 'axios'; // Import axios
+import { useAlert } from '../context/AlertContext';
 
 // Base URL API
 const API_URL = 'http://localhost:3000/api/event/'; 
@@ -13,6 +14,8 @@ const Events = () => {
     const [error, setError] = useState(null);
     const [activeFilter, setActiveFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [registering, setRegistering] = useState(null);
+    const { showAlert } = useAlert();
 
     // --- 1. Fetch Data dari API ---
     useEffect(() => {
@@ -92,8 +95,81 @@ const Events = () => {
         }
     };
 
+    // Fungsi untuk mendapatkan inisial dari nama
+    const getInitials = (name) => {
+        if (!name) return '?';
+        const words = name.trim().split(' ');
+        if (words.length === 1) return words[0].charAt(0).toUpperCase();
+        return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+    };
+
+    // Fungsi untuk mendapatkan warna background berdasarkan nama
+    const getAvatarColor = (name) => {
+        if (!name) return 'bg-gray-500';
+        const colors = [
+            'bg-purple-500',
+            'bg-blue-500',
+            'bg-green-500',
+            'bg-yellow-500',
+            'bg-red-500',
+            'bg-indigo-500',
+            'bg-pink-500',
+            'bg-teal-500',
+        ];
+        const index = name.charCodeAt(0) % colors.length;
+        return colors[index];
+    };
+
+    // Fungsi untuk daftar event
+    const handleRegisterEvent = async (eventId) => {
+        const token = localStorage.getItem('mindloop_token');
+        
+        if (!token) {
+            showAlert({
+                title: "Login Diperlukan",
+                message: "Silakan login terlebih dahulu untuk mendaftar event!",
+                type: "warning"
+            });
+            return;
+        }
+
+        setRegistering(eventId);
+        
+        try {
+            const response = await axios.post(
+                `http://localhost:3000/api/event/${eventId}/register`,
+                {},
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            showAlert({
+                title: "Berhasil Mendaftar!",
+                message: response.data.message || "Anda telah berhasil mendaftar event ini",
+                type: "success"
+            });
+
+            // Refresh data events untuk update jumlah peserta
+            const refreshResponse = await axios.get(API_URL);
+            setEvents(refreshResponse.data.events);
+        } catch (error) {
+            console.error('Error registering event:', error);
+            showAlert({
+                title: "Gagal Mendaftar",
+                message: error.response?.data?.message || "Terjadi kesalahan saat mendaftar event",
+                type: "error"
+            });
+        } finally {
+            setRegistering(null);
+        }
+    };
+
     // --- 5. Conditional Rendering untuk Loading/Error ---
-    const renderContent = () => {
+    const renderEventList = () => {
         if (loading) {
             return (
                 <div className="text-center py-24">
@@ -137,12 +213,10 @@ const Events = () => {
             );
         }
 
-        // Tampilan Grid Event
         return (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                {searchedEvents.map(event => (
-                    <div key={event.id} className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden hover:shadow-strong transition-all duration-300 group">
-                        {/* Event Image */}
+                {searchedEvents.map((event) => (
+                    <div key={event.id} className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden hover:shadow-strong transition-all duration-300 group flex flex-col">
                         <div className="h-48 overflow-hidden relative">
                             <img 
                                 src={event.image} 
@@ -151,7 +225,7 @@ const Events = () => {
                             />
                             <div className="absolute top-4 left-4 flex gap-2">
                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${getEventTypeColor(event.type)}`}>
-                                    {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                                    {event.type?.charAt(0).toUpperCase() + event.type?.slice(1)}
                                 </span>
                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(event.status)}`}>
                                     {event.status === 'upcoming' ? 'Segera' : event.status}
@@ -163,18 +237,16 @@ const Events = () => {
                                 </span>
                             </div>
                         </div>
-                        
-                        {/* Event Content */}
-                        <div className="p-6">
+
+                        <div className="p-6 flex flex-col flex-grow">
                             <h3 className="font-bold text-xl text-gray-900 mb-3 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">
                                 {event.title}
                             </h3>
-                            
-                            <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3">
+
+                            <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3 flex-grow">
                                 {event.description}
                             </p>
-                            
-                            {/* Event Meta */}
+
                             <div className="space-y-3 mb-4">
                                 <div className="flex items-center gap-3 text-sm text-gray-600">
                                     <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,43 +267,49 @@ const Events = () => {
                                     <span>{event.participants} peserta</span>
                                 </div>
                             </div>
-                            
-                            {/* Tags */}
-                            <div className="flex flex-wrap gap-1 mb-4">
-                                {event.tags.map((tag, index) => (
+
+                            <div className="flex flex-wrap gap-1 mb-6">
+                                {event.tags?.map((tag, index) => (
                                     <span key={index} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
                                         #{tag}
                                     </span>
                                 ))}
                             </div>
-                            
-                            <div className='flex flex-col justify-items-end'>
-                                {/* Speaker Info */}
-                                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                                    <img 
-                                        src={event.speakerImage} 
-                                        alt={event.speaker}
-                                        className="w-8 h-8 rounded-full"
-                                    />
-                                    <div className="flex-1">
-                                        <div className="text-sm font-medium text-gray-900">{event.speaker}</div>
-                                        <div className="text-xs text-gray-500">Pembicara</div>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                                <div className="flex items-center gap-2">
+                                    {event.speakerImage ? (
+                                        <img 
+                                            src={event.speakerImage}
+                                            alt={event.speaker}
+                                            className="w-8 h-8 rounded-full object-cover"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.nextSibling.style.display = 'flex';
+                                            }}
+                                        />
+                                    ) : null}
+                                    <div 
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(event.speaker)} ${event.speakerImage ? 'hidden' : 'flex'}`}
+                                    >
+                                        {getInitials(event.speaker)}
                                     </div>
-                                    <div className="text-right">
-                                        <div className={`text-lg font-bold ${
-                                            event.price === 'Gratis' ? 'text-green-600' : 'text-indigo-600'
-                                        }`}>
-                                            {event.price}
-                                        </div>
+                                    <div className="text-xs">
+                                        <p className="font-semibold text-gray-900">{event.speaker}</p>
+                                        <p className="text-gray-500">Speaker</p>
                                     </div>
                                 </div>
-                                
-                                {/* Action Button */}
-                                <button className="w-full mt-4 btn btn-primary justify-center">
-                                    Daftar Sekarang
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                    </svg>
+
+                                <button 
+                                    onClick={() => handleRegisterEvent(event.id)}
+                                    disabled={registering === event.id || event.status === 'completed'}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                        event.status === 'completed'
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'
+                                    }`}
+                                >
+                                    {registering === event.id ? 'Memproses...' : (event.status === 'completed' ? 'Selesai' : 'Daftar')}
                                 </button>
                             </div>
                         </div>
@@ -242,12 +320,12 @@ const Events = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-white">
             <Navbar />
             
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-gradient-to-br from-white to-indigo-50">
-                <div className="container-optimized">
+                <div className="container mx-auto px-4">
                     <div className="text-center max-w-4xl mx-auto">
                         <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
                             <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
@@ -255,7 +333,7 @@ const Events = () => {
                         </div>
                         
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-                            Tingkatkan <span className="gradient-text">Literasi</span> dengan Event Interaktif
+                            Tingkatkan <span className="text-indigo-600">Literasi</span> dengan Event Interaktif
                         </h1>
                         
                         <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
@@ -273,18 +351,14 @@ const Events = () => {
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                 <span>{allEventTypes.length} Tipe Kegiatan</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                                <span>Expert Facilitators</span>
-                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
             {/* Filter Section */}
-            <section className="py-8 bg-white border-b border-gray-200 top-0 z-40">
-                <div className="container-optimized">
+            <section className="py-8 bg-white border-b border-gray-200 sticky top-16 z-30 shadow-sm">
+                <div className="container mx-auto px-4">
                     <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                         {/* Search Bar */}
                         <div className="w-full lg:w-64">
@@ -303,7 +377,7 @@ const Events = () => {
                         </div>
 
                         {/* Category Filters */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full w-full lg:w-auto">
                             {eventCategories.map(category => (
                                 <button
                                     key={category.id}
@@ -329,9 +403,9 @@ const Events = () => {
                 </div>
             </section>
 
-            {/* Events Grid */}
+            {/* Events Grid & Main Content */}
             <section className="py-16">
-                <div className="container-optimized">
+                <div className="container mx-auto px-4">
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900">
@@ -339,12 +413,12 @@ const Events = () => {
                             </h2>
                             <p className="text-gray-600">
                                 {searchedEvents.length} event tersedia
-                                {searchQuery && ` untuk "${searchQuery}"`}
+                                {searchQuery && ` untuk \"${searchQuery}\"`}
                             </p>
                         </div>
                     </div>
 
-                    {renderContent()}
+                    {renderEventList()}
 
                     {/* Newsletter CTA */}
                     <div className="mt-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 text-center">

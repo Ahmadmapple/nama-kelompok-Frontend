@@ -17,20 +17,17 @@ const EnhancedQuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBa
     const saveResult = async () => {
       setIsLoading(true);
       try {
-        const result = await saveQuizResult({
-          quizId: quiz.id,
-          quizTitle: quiz.title,
-          score: score,
-          totalQuestions: questions.length,
-          correctAnswers: correctAnswers,
-          difficulty: quiz.difficulty,
-          category: quiz.category,
-          userAnswers: userAnswers,
-          questions: questions
-        });
+        const result = await saveQuizResult(
+          quiz.id,           // quizId
+          score,             // score
+          questions.length,  // totalQuestions
+          0                  // timeSpent (dalam detik, bisa dihitung jika perlu)
+        );
 
-        setNewBadges(result.newBadges || []);
-        setXpEarned(result.quizResult.xpEarned);
+        if (result) {
+          setNewBadges(result.newBadges || []);
+          setXpEarned(result.xpEarned || 0);
+        }
       } catch (error) {
         console.error('Error saving quiz result:', error);
       } finally {

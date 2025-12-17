@@ -409,8 +409,10 @@ const Profile = () => {
                 </div>
               </div>
 
+              {/* Riwayat Bacaan Terbaru */}
               <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="text-2xl">📚</span>
                   Riwayat Bacaan Terbaru
                 </h2>
                 <div className="space-y-3">
@@ -418,32 +420,141 @@ const Profile = () => {
                     data.readingHistory.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                        className="group relative bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-indigo-200 transition-all duration-200"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
                               item.progress === 100
-                                ? "bg-green-100 text-green-600"
-                                : "bg-blue-100 text-blue-600"
+                                ? "bg-gradient-to-br from-green-400 to-emerald-500 text-white shadow-lg"
+                                : "bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-lg"
                             }`}
                           >
-                            {item.progress === 100 ? "✓" : "📖"}
+                            <span className="text-xl">{item.progress === 100 ? "✓" : "📖"}</span>
                           </div>
-                          <div>
-                            <div className="font-medium text-gray-900">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">
                               {item.title}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {item.category} • {item.date}
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium">
+                                {item.category}
+                              </span>
+                              <span>•</span>
+                              <span>{item.date}</span>
+                            </div>
+                            {item.progress < 100 && (
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${item.progress}%` }}
+                                ></div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <div className="text-4xl mb-2">📖</div>
+                      <p className="text-sm">Tidak ada riwayat bacaan. Mulai baca sekarang!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Event yang Didaftari */}
+              <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🎫</span>
+                  Event yang Didaftari
+                </h2>
+                <div className="space-y-3">
+                  {data.registeredEvents && data.registeredEvents.length > 0 ? (
+                    data.registeredEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="group relative bg-gradient-to-r from-purple-50 to-white border border-purple-200 rounded-xl p-4 hover:shadow-md hover:border-purple-300 transition-all duration-200"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center flex-shrink-0 text-white shadow-lg">
+                            <span className="text-xl">🎉</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 mb-1 group-hover:text-purple-600 transition-colors">
+                              {event.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                              <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-xs font-medium">
+                                {event.type}
+                              </span>
+                              <span>•</span>
+                              <span>{event.date}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Terdaftar pada {event.registeredDate}
                             </div>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-6 text-gray-500 italic">
-                      Tidak ada riwayat bacaan. Mulai baca sekarang!
+                    <div className="text-center py-8 text-gray-400">
+                      <div className="text-4xl mb-2">🎫</div>
+                      <p className="text-sm">Belum ada event yang didaftari. Daftar event sekarang!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Riwayat Kuis */}
+              <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🎯</span>
+                  Riwayat Kuis
+                </h2>
+                <div className="space-y-3">
+                  {data.quizHistory && data.quizHistory.length > 0 ? (
+                    data.quizHistory.map((quiz) => (
+                      <div
+                        key={quiz.id}
+                        className="group relative bg-gradient-to-r from-amber-50 to-white border border-amber-200 rounded-xl p-4 hover:shadow-md hover:border-amber-300 transition-all duration-200"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 text-white shadow-lg ${
+                            quiz.score >= 80 
+                              ? "bg-gradient-to-br from-green-400 to-emerald-500" 
+                              : quiz.score >= 60 
+                              ? "bg-gradient-to-br from-yellow-400 to-amber-500" 
+                              : "bg-gradient-to-br from-red-400 to-pink-500"
+                          }`}>
+                            <span className="text-xl font-bold">{quiz.score}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
+                              {quiz.title}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                              <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-xs font-medium">
+                                Skor: {quiz.score}%
+                              </span>
+                              <span>•</span>
+                              <span>{quiz.date}</span>
+                            </div>
+                            {quiz.xpEarned && (
+                              <div className="text-xs text-green-600 font-medium">
+                                +{quiz.xpEarned} XP
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <div className="text-4xl mb-2">🎯</div>
+                      <p className="text-sm">Belum ada kuis yang diselesaikan. Mulai kuis sekarang!</p>
                     </div>
                   )}
                 </div>
@@ -460,8 +571,11 @@ const Profile = () => {
                   <div className="text-3xl font-bold text-gray-900 mb-2">
                     Level {data.level}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 mb-1">
                     {data.xp} / {data.xpToNextLevel} XP
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {data.xpToNextLevel - data.xp} XP lagi untuk level {data.level + 1}
                   </div>
                 </div>
 
@@ -472,9 +586,37 @@ const Profile = () => {
                   ></div>
                 </div>
 
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm text-gray-500 mb-4">
                   <span>Level {data.level}</span>
                   <span>Level {data.level + 1}</span>
+                </div>
+
+                {/* Level Requirements Info */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-xs font-semibold text-gray-700 mb-2">
+                    📊 Kebutuhan XP per Level:
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Level 1 → 2:</span>
+                      <span className="font-medium">100 XP</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Level 2 → 3:</span>
+                      <span className="font-medium">200 XP</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Level 3 → 4:</span>
+                      <span className="font-medium">300 XP</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Level 4 → 5:</span>
+                      <span className="font-medium">400 XP</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500 italic">
+                    Setiap level membutuhkan +100 XP lebih banyak
+                  </div>
                 </div>
               </div>
 
