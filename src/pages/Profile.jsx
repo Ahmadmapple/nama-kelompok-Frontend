@@ -439,12 +439,6 @@ const Profile = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            {item.progress}%
-                          </div>
-                          <div className="text-xs text-gray-500">Selesai</div>
-                        </div>
                       </div>
                     ))
                   ) : (

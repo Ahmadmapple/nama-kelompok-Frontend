@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import axios from "axios";
@@ -9,28 +9,23 @@ const Articles = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
   const STATIC_CATEGORIES = [
     { id: "digital-literacy", name: "Literasi Digital" },
     { id: "critical-thinking", name: "Berpikir Kritis" },
-    { id: "reading-techniques", name: "Teknik Membaca" },
+    { id: "reading-tech", name: "Teknik Membaca" },
     { id: "research-skills", name: "Skill Research" },
     { id: "fact-checking", name: "Fact-Checking" },
   ];
 
-  // ================= FETCH =================
+  // ================= FETCH ARTICLES =================
   useEffect(() => {
     const fetchArticles = async () => {
       setLoading(true);
       try {
-        // Asumsi API Anda berjalan di port 3000
-        const res = await axios.get("http://localhost:3000/api/article/"); 
-        // NOTE: Pastikan res.data berisi array objek artikel
-        if (Array.isArray(res.data)) {
-          setArticles(res.data);
-        } else {
-          setArticles([]);
-        }
+        const res = await axios.get("http://localhost:3000/api/article/");
+        setArticles(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Gagal ambil artikel:", err.message);
         setArticles([]);
@@ -38,37 +33,29 @@ const Articles = () => {
         setLoading(false);
       }
     };
-
     fetchArticles();
   }, []);
 
-  // ================= 1. HITUNG JUMLAH ARTIKEL PER KATEGORI (useMemo) =================
+  // ================= HITUNG JUMLAH ARTIKEL PER KATEGORI =================
   const articleCategories = useMemo(() => {
-    // 1. Hitung berapa banyak artikel yang dimiliki setiap kategori
     const categoryCounts = articles.reduce((acc, article) => {
-      // Menggunakan properti 'kategori' dari objek artikel
       const categoryId = article.kategori;
-      if (categoryId) {
-        acc[categoryId] = (acc[categoryId] || 0) + 1;
-      }
+      if (categoryId) acc[categoryId] = (acc[categoryId] || 0) + 1;
       return acc;
     }, {});
 
-    // 2. Gabungkan list hardcode dengan jumlah (count) artikel yang sebenarnya
     const categoriesWithCount = STATIC_CATEGORIES.map((cat) => ({
       ...cat,
-      // Tambahkan properti 'count'
-      count: categoryCounts[cat.id] || 0, 
+      count: categoryCounts[cat.id] || 0,
     }));
 
-    // 3. Tambahkan kategori "Semua Kategori" di awal
     return [
       { id: "all", name: "Semua Kategori", count: articles.length },
       ...categoriesWithCount,
     ];
-  }, [articles]); // Hitung ulang setiap kali 'articles' berubah
+  }, [articles]);
 
-  // ================= FILTER (Menggunakan articleCategories yang baru) =================
+  // ================= FILTERING =================
   const filteredArticles = useMemo(() => {
     return activeCategory === "all"
       ? articles
@@ -77,7 +64,6 @@ const Articles = () => {
 
   const searchedArticles = useMemo(() => {
     if (!searchQuery) return filteredArticles;
-
     const query = searchQuery.toLowerCase();
     return filteredArticles.filter(
       (a) =>
@@ -87,8 +73,40 @@ const Articles = () => {
     );
   }, [filteredArticles, searchQuery]);
 
+  // ================= HANDLE ARTICLE CLICK =================
+  const handleArticleClick = async (article) => {
+    const token = localStorage.getItem("mindloop_token");
 
-  // --- RENDERING ---
+    if (!token) {
+      // Kalau user belum login, redirect ke login
+      navigate("/login");
+      return;
+    }
+
+    const headers = { Authorization: `Bearer ${token}` };
+
+    try {
+      // 1️⃣ Catat riwayat baca artikel
+      await axios.post(
+        `http://localhost:3000/api/article/${article.id_artikel}/riwayat-baca`,
+        {},
+        { headers }
+      );
+
+      // 2️⃣ Update progres pengguna (waktu membaca & jumlah artikel dibuka)
+      await axios.post(
+        `http://localhost:3000/api/article/${article.id_artikel}/progres`,
+        { durasi: Number(article.perkiraan_waktu_menit) },
+        { headers }
+      );
+    } catch (err) {
+      console.error("Gagal update riwayat/progres:", err.message);
+    }
+
+    // 3️⃣ Navigate ke detail artikel
+    navigate(`/articles/${article.id_artikel}`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -109,7 +127,7 @@ const Articles = () => {
         </div>
       </section>
 
-      {/* CATEGORY FILTER DENGAN JUMLAH ARTIKEL */}
+      {/* CATEGORY FILTER */}
       <section className="py-6 bg-white border-b">
         <div className="container-optimized flex gap-3 overflow-x-auto no-scrollbar whitespace-nowrap">
           {articleCategories.map((cat) => (
@@ -123,7 +141,6 @@ const Articles = () => {
               }`}
             >
               {cat.name}
-              {/* ⭐ Tambahkan Badge Jumlah (Count) */}
               <span
                 className={`text-xs px-2 py-0.5 rounded-full ${
                   activeCategory === cat.id
@@ -141,30 +158,24 @@ const Articles = () => {
       {/* CONTENT */}
       <section className="py-16">
         <div className="container-optimized">
-
-          {loading && (
-            <p className="text-center text-gray-500">Memuat artikel...</p>
-          )}
-
+          {loading && <p className="text-center text-gray-500">Memuat artikel...</p>}
           {!loading && searchedArticles.length === 0 && (
-            <p className="text-center text-gray-500">
-              Tidak ada artikel ditemukan
-            </p>
+            <p className="text-center text-gray-500">Tidak ada artikel ditemukan</p>
           )}
 
           {!loading && searchedArticles.length > 0 && (
             <>
-              {/* Tambahkan indikator kategori yang sedang dilihat */}
               <h2 className="text-xl font-bold text-gray-900 mb-6">
-                 {articleCategories.find((c) => c.id === activeCategory)?.name} ({searchedArticles.length})
+                {articleCategories.find((c) => c.id === activeCategory)?.name} (
+                {searchedArticles.length})
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {searchedArticles.map((article) => (
-                  <Link
+                  <div
                     key={article.id_artikel}
-                    to={`/articles/${article.id_artikel}`}
-                    className="bg-white rounded-2xl shadow-soft border overflow-hidden hover:shadow-strong transition group"
+                    onClick={() => handleArticleClick(article)}
+                    className="cursor-pointer bg-white rounded-2xl shadow-soft border overflow-hidden hover:shadow-strong transition group"
                   >
                     {/* IMAGE */}
                     <div className="relative h-48 overflow-hidden">
@@ -174,17 +185,10 @@ const Articles = () => {
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                       />
 
-                      {/* BADGE */}
                       <div className="absolute top-4 left-4 flex gap-2">
                         <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium">
-                          {
-                            // Mengambil nama kategori dari list yang sudah di-memo
-                            articleCategories.find(
-                              (c) => c.id === article.kategori
-                            )?.name
-                          }
+                          {articleCategories.find((c) => c.id === article.kategori)?.name}
                         </span>
-
                         <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${
                             article.kesulitan === "Pemula"
@@ -204,7 +208,6 @@ const Articles = () => {
                       <h3 className="font-bold text-xl mb-3 line-clamp-2 group-hover:text-indigo-600">
                         {article.nama_artikel}
                       </h3>
-
                       <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                         {article.deskripsi}
                       </p>
@@ -236,14 +239,12 @@ const Articles = () => {
                           className="w-8 h-8 rounded-full object-cover"
                         />
                         <div>
-                          <p className="text-sm font-medium">
-                            {article.author?.nama}
-                          </p>
+                          <p className="text-sm font-medium">{article.author?.nama}</p>
                           <p className="text-xs text-gray-500">Penulis</p>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </>

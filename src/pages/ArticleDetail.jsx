@@ -4,51 +4,100 @@ import axios from "axios";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 
+/* ================================
+   🔹 KATEGORI MAPPING
+================================ */
+const CATEGORY_LABEL = {
+  "digital-literacy": "Literasi Digital",
+  "fact-checking": "Fact Checking",
+  "reading-tech": "Teknik Membaca",
+  "skill-research": "Skill Research",
+  "critical-thinking": "Berpikir Kritis",
+};
+
 const ArticleDetail = () => {
   const { id } = useParams();
+
   const [article, setArticle] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch article with optional auth token
+  /* 🔹 RELATED QUIZ */
+  const [relatedQuiz, setRelatedQuiz] = useState([]);
+  const [quizLoading, setQuizLoading] = useState(false);
+
+  /* ================================
+     🔹 FETCH ARTICLE
+  ================================ */
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
     const fetchArticle = async () => {
       try {
         setLoading(true);
+
         const token = localStorage.getItem("mindloop_token");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const response = await axios.get(
+        const res = await axios.get(
           `http://localhost:3000/api/article/${id}`,
           { headers }
         );
 
-        if (!mounted) return;
+        if (!isMounted) return;
 
-        setArticle(response.data);
-        setIsLiked(response.data.is_liked || false);
+        setArticle(res.data);
+        setIsLiked(Boolean(res.data.is_liked));
         setLoading(false);
 
-        // Increment view (no need to await blocking)
-        axios.post(`http://localhost:3000/api/article/${id}/view`).catch(console.error);
+        // fire & forget view counter
+        axios.post(`http://localhost:3000/api/article/${id}/view`).catch(() => {});
       } catch (err) {
-        if (!mounted) return;
-        console.error("Fetch article error:", err);
+        if (!isMounted) return;
+        console.error(err);
         setError("Gagal memuat artikel.");
         setLoading(false);
       }
     };
 
     fetchArticle();
-    return () => {
-      mounted = false;
-    };
+    return () => (isMounted = false);
   }, [id]);
 
-  // Handle like/unlike
+  /* ================================
+     🔹 FETCH RELATED QUIZ
+  ================================ */
+  useEffect(() => {
+    if (!article?.kategori) return;
+
+    const fetchRelatedQuiz = async () => {
+      try {
+        setQuizLoading(true);
+
+        const res = await axios.get("http://localhost:3000/api/kuis", {
+          params: {
+            category: article.kategori,
+            limit: 3,
+            simple: true,
+          },
+        });
+
+        setRelatedQuiz(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Related quiz error:", err);
+        setRelatedQuiz([]);
+      } finally {
+        setQuizLoading(false);
+      }
+    };
+
+    fetchRelatedQuiz();
+  }, [article?.kategori]);
+
+  /* ================================
+     🔹 LIKE HANDLER
+  ================================ */
   const handleLike = async () => {
     if (!article) return;
 
@@ -58,169 +107,165 @@ const ArticleDetail = () => {
       return;
     }
 
-    try {
-      // Optimistic UI update
-      const newLikeState = !isLiked;
-      setIsLiked(newLikeState);
-      setArticle((prev) => ({
-        ...prev,
-        like_artikel: newLikeState
-          ? prev.like_artikel + 1
-          : prev.like_artikel - 1,
-      }));
+    const prevLiked = isLiked;
 
-      const response = await axios.post(
+    setIsLiked(!prevLiked);
+    setArticle((prev) => ({
+      ...prev,
+      like_artikel: prevLiked
+        ? prev.like_artikel - 1
+        : prev.like_artikel + 1,
+    }));
+
+    try {
+      const res = await axios.post(
         `http://localhost:3000/api/article/${id}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Sync with backend
-      setIsLiked(response.data.is_liked);
+      setIsLiked(res.data.is_liked);
       setArticle((prev) => ({
         ...prev,
-        like_artikel: response.data.like_artikel,
+        like_artikel: res.data.like_artikel,
       }));
-    } catch (err) {
-      console.error("Like toggle error:", err);
-      alert("Gagal melakukan like. Silakan coba lagi.");
-
-      // Revert optimistic update on failure
-      setIsLiked((prev) => !prev);
+    } catch {
+      // rollback
+      setIsLiked(prevLiked);
       setArticle((prev) => ({
         ...prev,
-        like_artikel: isLiked
+        like_artikel: prevLiked
           ? prev.like_artikel + 1
           : prev.like_artikel - 1,
       }));
     }
   };
 
-  // Copy URL automatically
-  useEffect(() => {
-    if (article) {
-      navigator.clipboard.writeText(window.location.href);
-    }
-  }, [article]);
-
-  const formatDate = (isoString) => {
-    const date = new Date(isoString);
-    return date.toLocaleDateString("id-ID", {
+  /* ================================
+     🔹 HELPERS
+  ================================ */
+  const formatDate = (iso) =>
+    new Date(iso).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
-  };
 
-  const Skeleton = () => (
-    <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-300 rounded w-1/4"></div>
-      <div className="h-6 bg-gray-300 rounded w-1/3"></div>
-      <div className="h-64 bg-gray-300 rounded"></div>
-      <div className="space-y-2">
-        <div className="h-4 bg-gray-300 rounded w-full"></div>
-        <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-300 rounded w-4/6"></div>
-      </div>
-    </div>
-  );
+  const categoryLabel =
+    CATEGORY_LABEL[article?.kategori] || article?.kategori;
 
-  if (error)
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
         {error}
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-cream">
       <Navbar />
-      <div className="container-custom py-8 mt-6">
+
+      <div className="container-custom py-10 mt-12">
         <article className="max-w-4xl mx-auto">
-          {/* Header */}
-          <header className="mb-8">
-            {loading ? (
-              <Skeleton />
-            ) : (
-              <>
-                <nav className="flex items-center gap-2 text-sm text-text-light mb-2 mt-6 py-2 relative z-10">
-                  <Link to="/" className="hover:text-dark-brown transition-colors">Beranda</Link>
-                  <span>›</span>
-                  <Link to="/articles" className="hover:text-dark-brown transition-colors">Artikel</Link>
-                  <span>›</span>
-                  <span className="text-dark-brown font-medium">{article.kategori}</span>
-                </nav>
-
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-dark-brown mb-6 leading-tight">{article.nama_artikel}</h1>
-
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src={article.author?.avatar || "/default-avatar.png"}
-                    alt={article.author?.nama || "Author"}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-semibold text-text-dark">{article.author?.nama || "Unknown"}</p>
-                    <p className="text-sm text-text-light">{formatDate(article.tanggal_publish)}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-6 text-text-light border-y border-light-brown py-4">
-                  <span className="flex items-center gap-2">⏱️ {article.perkiraan_waktu_menit} menit</span>
-                  <span className="flex items-center gap-2">👁️ {article.view_artikel} dilihat</span>
-                  <span className="flex items-center gap-2">❤️ {article.like_artikel} suka</span>
-                </div>
-
-                {article.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {article.tags.map((tag, idx) => (
-                      <span key={idx} className="bg-light-brown text-dark-brown px-3 py-1 rounded-full text-xs font-medium">{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </header>
-
-          {loading ? (
-            <div className="h-64 md:h-96 bg-gray-300 rounded-2xl mb-8 animate-pulse"></div>
-          ) : (
-            <div className="rounded-2xl overflow-hidden mb-8">
-              <img src={article.gambar_artikel} alt={article.nama_artikel} className="w-full h-64 md:h-96 object-cover" />
-            </div>
-          )}
-
           {!loading && (
-            <div className="prose prose-lg max-w-none mb-8 animate-fade-in" dangerouslySetInnerHTML={{ __html: article.isi_artikel }} />
-          )}
+            <>
+              <nav className="text-sm text-text-light flex gap-2 mb-4">
+                <Link to="/">Beranda</Link>
+                <span>›</span>
+                <Link to="/articles">Artikel</Link>
+                <span>›</span>
+                <span className="font-medium text-dark-brown">
+                  {categoryLabel}
+                </span>
+              </nav>
 
-          {!loading && (
-            <div className="flex flex-wrap gap-4 py-6 border-t border-light-brown">
-              <button
-                onClick={handleLike}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:text-black"
-              >
+              <h1 className="text-4xl font-bold mb-6">
+                {article.nama_artikel}
+              </h1>
+
+              <div className="flex items-center gap-4 mb-6">
+                <img
+                  src={article.author?.avatar || "/default-avatar.png"}
+                  className="w-12 h-12 rounded-full"
+                />
+                <div>
+                  <p className="font-semibold">
+                    {article.author?.nama}
+                  </p>
+                  <p className="text-sm text-text-light">
+                    {formatDate(article.tanggal_publish)}
+                  </p>
+                </div>
+              </div>
+
+              <img
+                src={article.gambar_artikel}
+                className="w-full h-96 object-cover rounded-2xl mb-10"
+              />
+
+              <div
+                className="prose prose-lg max-w-none mb-10"
+                dangerouslySetInnerHTML={{ __html: article.isi_artikel }}
+              />
+
+              <button onClick={handleLike}>
                 {isLiked ? "❤️ Disukai" : "🤍 Suka"}
               </button>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  alert("Link artikel telah disalin!");
-                }}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold hover:text-black transition-all duration-300"
-              >
-                🔗 Bagikan
-              </button>
-            </div>
+            </>
           )}
         </article>
 
-        <div className="text-center mt-12">
-          <Link to="/articles" className="inline-flex items-center gap-2 px-8 py-4 bg-dark-brown text-white rounded-xl font-semibold hover:bg-medium-brown transition-all duration-300 hover:-translate-y-1">
+        {/* ================= RELATED QUIZ ================= */}
+        <section className="max-w-5xl mx-auto mt-20">
+          <h2 className="text-2xl font-bold mb-6">🎯 Kuis Terkait</h2>
+
+          {quizLoading && <p className="text-center">Memuat kuis...</p>}
+
+          {!quizLoading && relatedQuiz.length === 0 && (
+            <p className="text-center italic">
+              Tidak ada kuis terkait
+            </p>
+          )}
+
+          {!quizLoading && relatedQuiz.length > 0 && (
+            <div className="grid md:grid-cols-3 gap-6">
+              {relatedQuiz.map((quiz) => (
+                <Link
+                  key={quiz.id_kuis}
+                  to={`/quiz?start=${quiz.id_kuis}`}
+                  className="bg-white rounded-2xl shadow hover:shadow-lg transition"
+                >
+                  <img
+                    src={quiz.gambar || "/quiz-placeholder.jpg"}
+                    className="h-40 w-full object-cover rounded-t-2xl"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-semibold mb-2">
+                      {quiz.judul_kuis}
+                    </h3>
+                    <div className="text-sm flex justify-between">
+                      <span>
+                        📝 {quiz.jumlah_soal ?? "-"} soal
+                      </span>
+                      <span>
+                        ⏱️ {quiz.waktu_pengerjaan_menit ?? "-"} menit
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="text-center mt-16">
+          <Link to="/articles" className="px-8 py-4 bg-dark-brown text-white rounded-xl">
             ← Kembali ke Semua Artikel
           </Link>
         </div>
       </div>
+
       <Footer />
     </div>
   );

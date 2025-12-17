@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useEnhancedQuiz } from "../context/EnhancedQuizContext";
@@ -9,9 +9,7 @@ import QuizCard from "../components/quiz/QuizCard";
 import QuizQuestion from "../components/quiz/QuizQuestion";
 import EnhancedQuizResult from "../components/quiz/EnhancedQuizResult";
 
-// Definisikan 5 Kategori Hardcode (ID harus sesuai dengan nilai 'category' di backend Anda)
 const STATIC_CATEGORIES = [
-  // Pastikan ID ini cocok dengan nilai 'category' yang dikirim dari backend
   { id: "digital-literacy", name: "Literasi Digital" },
   { id: "fact-checking", name: "Fact-Checking" },
   { id: "reading-techniques", name: "Teknik Membaca" },
@@ -20,8 +18,8 @@ const STATIC_CATEGORIES = [
 ];
 
 const Quiz = () => {
-  const { user } = useAuth();
-  const { quizHistory } = useEnhancedQuiz();
+  const { user } = useAuth(); // Status login
+  const { quizHistory } = useEnhancedQuiz(); // Data riwayat dari database
 
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +29,9 @@ const Quiz = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
 
-  // Fetch data dari backend
+  // 1. Fetch data kuis dari backend
   useEffect(() => {
     const fetchQuizzes = async () => {
       setLoading(true);
@@ -43,20 +42,15 @@ const Quiz = () => {
             ...quiz,
             questions: quiz.questions.map((q) => ({
               ...q,
-              // Backend sudah mengirim sebagai Number, ini hanya memastikan (fail-safe)
               score: Number(q.score) || 0,
               correctAnswer: Number(q.correctAnswer) || 0,
               timeLimit: Number(q.timeLimit) || 30,
             })),
           }));
-
           setQuizzes(processedQuizzes);
-        } else {
-          setQuizzes([]);
         }
       } catch (error) {
         console.error("Gagal mengambil data kuis:", error);
-        setQuizzes([]);
       } finally {
         setLoading(false);
       }
@@ -64,55 +58,56 @@ const Quiz = () => {
     fetchQuizzes();
   }, []);
 
-  // 1. Definisikan dan Hitung Kategori Berdasarkan List Hardcode (useMemo)
+  // 2. Handle deep link (?start=ID_KUIS)
+  useEffect(() => {
+    if (loading || quizzes.length === 0) return;
+    const startId = searchParams.get("start");
+    if (startId) {
+      const quiz = quizzes.find((q) => q.id === startId);
+      if (quiz) startQuiz(startId);
+    }
+  }, [loading, quizzes, searchParams]);
+
+  // 3. Menghitung Kategori (useMemo agar tidak re-render berat)
   const quizCategories = useMemo(() => {
-    // Hitung berapa banyak kuis yang dimiliki setiap kategori
     const categoryCounts = quizzes.reduce((acc, quiz) => {
       acc[quiz.category] = (acc[quiz.category] || 0) + 1;
       return acc;
     }, {});
 
-    // Gabungkan list hardcode dengan jumlah (count) kuis yang sebenarnya
     const categoriesWithCount = STATIC_CATEGORIES.map((cat) => ({
       ...cat,
-      count: categoryCounts[cat.id] || 0, // Dapatkan count, jika 0 maka tampilkan 0
+      count: categoryCounts[cat.id] || 0,
     }));
 
-    // Tambahkan kategori "Semua Kuis" di awal
     return [
       { id: "all", name: "Semua Kuis", count: quizzes.length },
       ...categoriesWithCount,
     ];
   }, [quizzes]);
 
-  // 2. Filter Kategori
-  const filteredQuizzes = useMemo(() => {
-    return selectedCategory === "all"
-      ? quizzes
-      : quizzes.filter((quiz) => quiz.category === selectedCategory);
-  }, [quizzes, selectedCategory]);
-
-  // 3. Filter Search
+  // 4. Filter Kategori & Search
   const searchedQuizzes = useMemo(() => {
-    if (!searchQuery) return filteredQuizzes;
+    let result = selectedCategory === "all" 
+      ? quizzes 
+      : quizzes.filter((q) => q.category === selectedCategory);
 
-    const query = searchQuery.toLowerCase();
-    return filteredQuizzes.filter(
-      (quiz) =>
-        quiz.title.toLowerCase().includes(query) ||
-        quiz.description.toLowerCase().includes(query) ||
-        (quiz.tags &&
-          quiz.tags.some((tag) => tag.toLowerCase().includes(query)))
-    );
-  }, [filteredQuizzes, searchQuery]);
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (q) =>
+          q.title.toLowerCase().includes(query) ||
+          q.description.toLowerCase().includes(query) ||
+          (q.tags && q.tags.some(t => t.toLowerCase().includes(query)))
+      );
+    }
+    return result;
+  }, [quizzes, selectedCategory, searchQuery]);
 
-  // Logic Kuis (start, answer, score, reset)
+  // Logic Kuis
   const startQuiz = (quizId) => {
     const quizData = quizzes.find((q) => q.id === quizId);
-    if (!quizData || !quizData.questions || quizData.questions.length === 0) {
-      console.error("No questions found for quiz:", quizId);
-      return;
-    }
+    if (!quizData || !quizData.questions?.length) return;
     setActiveQuiz(quizData);
     setCurrentQuestion(0);
     setUserAnswers([]);
@@ -122,7 +117,6 @@ const Quiz = () => {
   const handleAnswer = (answerIndex) => {
     const newAnswers = [...userAnswers, answerIndex];
     setUserAnswers(newAnswers);
-
     if (currentQuestion < activeQuiz.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
@@ -131,34 +125,22 @@ const Quiz = () => {
   };
 
   const calculateScore = () => {
-    if (!activeQuiz || !quizCompleted) return 0;
+    if (!activeQuiz) return 0;
     let totalScore = 0;
-
     activeQuiz.questions.forEach((q, i) => {
-      // Pastikan correctAnswer sudah menjadi number (seharusnya sudah di useEffect/backend)
-      const correctAnswerIndex = Number(q.correctAnswer);
-
-      // Bandingkan angka userAnswers dengan angka kunci jawaban
-      if (userAnswers[i] === correctAnswerIndex) {
-        // PERBAIKAN PENTING: Tambahkan skor soal yang sudah dibobot (q.score)
+      if (userAnswers[i] === Number(q.correctAnswer)) {
         totalScore += Number(q.score) || 0;
       }
     });
-
-    // Total skor seharusnya selalu 100 karena sudah dihitung di backend/frontend saat buat kuis
     return Math.min(Math.round(totalScore), 100);
   };
 
   const resetQuiz = () => {
     setActiveQuiz(null);
-    setCurrentQuestion(0);
-    setUserAnswers([]);
     setQuizCompleted(false);
   };
 
-  // --- RENDERING LOGIC ---
-
-  // 1. Render QuizQuestion (Sedang Mengerjakan)
+  // RENDER: Tampilan Saat Mengerjakan
   if (activeQuiz && !quizCompleted) {
     return (
       <QuizQuestion
@@ -172,7 +154,7 @@ const Quiz = () => {
     );
   }
 
-  // 2. Render EnhancedQuizResult (Selesai)
+  // RENDER: Tampilan Hasil (EnhancedQuizResult)
   if (quizCompleted) {
     return (
       <EnhancedQuizResult
@@ -180,6 +162,7 @@ const Quiz = () => {
         score={calculateScore()}
         userAnswers={userAnswers}
         questions={activeQuiz.questions}
+        isGuest={!user} // Penting: Memberitahu jika ini tamu agar tidak simpan ke DB
         onRetry={() => {
           resetQuiz();
           startQuiz(activeQuiz.id);
@@ -189,214 +172,98 @@ const Quiz = () => {
     );
   }
 
-  // 3. Render Daftar Kuis (Halaman Utama)
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      {/* Hero Section */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-white to-indigo-50">
-        <div className="container-optimized">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-              Tantangan Literasi
-            </div>
+        <div className="container-optimized text-center">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+            <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+            Tantangan Literasi
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            Uji <span className="gradient-text">Kemampuan Literasi</span> Anda
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Tantang diri Anda dan tingkatkan pemahaman bacaan Anda melalui kuis interaktif kami.
+          </p>
+        </div>
+      </section>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-              Uji <span className="gradient-text">Kemampuan Literasi</span> Anda
-            </h1>
+      {/* Filter & Search Bar */}
+      <section className="py-8 bg-white border-b border-gray-200 top-[72px] z-20">
+        <div className="container-optimized flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full lg:w-64">
+            <input
+              type="text"
+              placeholder="Cari kuis..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+            />
+          </div>
 
-            <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
-              Tantang diri Anda dengan kuis interaktif yang dirancang untuk
-              meningkatkan kemampuan membaca kritis, analisis informasi, dan
-              berpikir logis.
-            </p>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 w-full lg:w-auto">
+            {quizCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${
+                  selectedCategory === cat.id
+                    ? "bg-indigo-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {cat.name}
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${selectedCategory === cat.id ? "bg-white/20" : "bg-gray-300"}`}>
+                  {cat.count}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Category Filter & Search */}
-      <section className="py-8 bg-white border-b border-gray-200">
-        <div className="container-optimized">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            {/* Search Bar */}
-            <div className="w-full lg:w-64">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Cari kuis..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                />
-                <svg
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Category Filters */}
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full">
-              {quizCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all flex items-center gap-1 lg:px-4 lg:py-2 lg:text-sm lg:gap-2 ${
-                    selectedCategory === category.id
-                      ? "bg-indigo-600 text-white shadow-lg"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {category.name}
-                  {/* Menampilkan jumlah kuis (count) di kategori tersebut */}
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full ${
-                      selectedCategory === category.id
-                        ? "bg-white/20 text-white"
-                        : "bg-gray-300 text-gray-700"
-                    }`}
-                  >
-                    {category.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="mt-4"></div>
-        </div>
-      </section>
-
-      {/* Quizzes Grid */}
+      {/* Grid Kuis */}
       <section className="py-16">
         <div className="container-optimized">
           {loading ? (
-            <p className="text-center text-gray-500 py-16">Memuat kuis...</p>
+            <div className="text-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="mt-4 text-gray-500">Memuat kuis...</p>
+            </div>
+          ) : searchedQuizzes.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+               <p className="text-gray-500">Tidak ada kuis yang cocok dengan pencarian Anda.</p>
+               <button onClick={() => {setSearchQuery(""); setSelectedCategory("all");}} className="mt-4 text-indigo-600 font-semibold">Lihat Semua Kuis</button>
+            </div>
           ) : (
-            <>
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {/* Menggunakan nama kategori dari list hardcode */}
-                    {quizCategories.find((cat) => cat.id === selectedCategory)
-                      ?.name || "Kuis"}
-                  </h2>
-                  <p className="text-gray-600">
-                    {searchedQuizzes.length} kuis tersedia
-                    {searchQuery && ` untuk "${searchQuery}"`}
-                  </p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {searchedQuizzes.map((quiz) => {
+                // LOGIKA SAKTI: Cek status selesai berdasarkan USER AKTIF
+                // Jika user logout, quizHistory dari context akan kosong/reset, 
+                // sehingga button otomatis kembali ke "Mulai Kuis"
+                const historyEntry = user ? quizHistory.find((h) => h.quizId === quiz.id) : null;
+                const isCompleted = !!historyEntry;
 
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    Selesai
-                  </span>
-                </div>
-              </div>
-
-              {searchedQuizzes.length === 0 ? (
-                <div className="text-center py-16">
-                  <svg
-                    className="w-16 h-16 text-gray-400 mx-auto mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    Tidak ada kuis ditemukan
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    Coba gunakan kata kunci lain atau pilih kategori yang
-                    berbeda
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedCategory("all");
+                return (
+                  <QuizCard
+                    key={quiz.id}
+                    quiz={{
+                      ...quiz,
+                      questionsCount: quiz.questions?.length || 0,
+                      duration: quiz.totaltime,
+                      categoryName: STATIC_CATEGORIES.find(c => c.id === quiz.category)?.name || "Umum",
+                      creatorName: quiz.creatorname || "MindLoop Team",
+                      creatorImage: quiz.creatorimage,
+                      completed: isCompleted, // Menentukan teks tombol "Mulai" vs "Coba Lagi"
+                      score: isCompleted ? historyEntry.score : null,
                     }}
-                    className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
-                  >
-                    Tampilkan Semua Kuis
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {searchedQuizzes.map((quiz) => (
-                    <QuizCard
-                      key={quiz.id}
-                      quiz={{
-                        ...quiz,
-                        questionsCount: quiz.questions?.length || 0,
-                        // FIX 1: Menggunakan 'totaltime' (lowercase)
-                        duration: quiz.totaltime,
-
-                        categoryName:
-                          STATIC_CATEGORIES.find(
-                            (cat) => cat.id === quiz.category
-                          )?.name || "Lain-lain",
-
-                        // FIX 2 & 3: Menggunakan 'creatorname' & 'creatorimage' (lowercase)
-                        creatorName: quiz.creatorname || "Kontributor",
-                        creatorImage: quiz.creatorimage,
-
-                        completed: quizHistory.some(
-                          (h) => h.quizId === quiz.id
-                        ),
-                        score:
-                          quizHistory.find((h) => h.quizId === quiz.id)
-                            ?.score || null,
-                      }}
-                      onStart={() => startQuiz(quiz.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Motivation Section for New Users */}
-          {(!user || quizHistory.length === 0) && (
-            <div className="mt-12 text-center">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-8 max-w-2xl mx-auto">
-                <h3 className="text-2xl font-bold mb-4 text-white">
-                  Siap Memulai Perjalanan Literasi?
-                </h3>
-                <p className="opacity-90 mb-6 text-white">
-                  Mulai dengan kuis pertama Anda dan dapatkan XP, lencana, serta
-                  track progress belajar Anda.
-                </p>
-                {!user ? (
-                  <Link
-                    to="/register"
-                    className="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2"
-                  >
-                    <span>🚀</span>
-                    Daftar Gratis untuk Mulai
-                  </Link>
-                ) : (
-                  <p className="text-lg text-white font-semibold">
-                    Pilih kuis di atas untuk memulai!
-                  </p>
-                )}
-              </div>
+                    onStart={() => startQuiz(quiz.id)}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
