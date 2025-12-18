@@ -5,6 +5,10 @@ import { AuthProvider } from "./context/AuthContext";
 import { EnhancedQuizProvider } from "./context/EnhancedQuizContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Home from "./pages/Home";
+import AdminPage from "./pages/AdminPage";
+import AdminArticles from "./pages/AdminArticle";
+import AdminUsers from "./pages/AdminUsers";
+import AdminQuizzes from "./pages/AdminQuizzes";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -115,7 +119,38 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-
+              <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+              <Route
+                path="/admin/articles"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminArticles />
+                  </ProtectedRoute>
+                }
+              />
+               <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/admin/quizzes" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminQuizzes />
+                  </ProtectedRoute>
+                } 
+              />
               {/* 404 Route */}
               <Route
                 path="*"

@@ -2,6 +2,11 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const ProtectedRoute = ({ children, requireAuth = true }) => {
+  const DEV_BYPASS = true; // ⛔ nanti ubah jadi false
+
+  if (DEV_BYPASS) {
+    return children;
+  }
   const { user, authChecked } = useAuth();
   const location = useLocation();
 
