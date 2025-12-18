@@ -68,26 +68,12 @@ export default function AdminPage() {
 
       {/* MAIN */}
       <main className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-6">Dashboard Admin</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow p-6">
-            <p className="text-sm text-gray-500">Total Artikel</p>
-            <p className="text-3xl font-bold mt-2">{stats.articles}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow p-6">
-            <p className="text-sm text-gray-500">Total Kuis</p>
-            <p className="text-3xl font-bold mt-2">{stats.quizzes}</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow p-6">
-            <p className="text-sm text-gray-500">Total User</p>
-            <p className="text-3xl font-bold mt-2">{stats.users}</p>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold mb-4">Dashboard Admin</h1>
+        <p className="text-gray-600">
+          Selamat datang di panel admin. Pilih menu di sidebar untuk mengelola
+          konten.
+        </p>
       </main>
-
     </div>
   );
 }
