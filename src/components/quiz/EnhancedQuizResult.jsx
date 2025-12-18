@@ -17,20 +17,17 @@ const EnhancedQuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBa
     const saveResult = async () => {
       setIsLoading(true);
       try {
-        const result = await saveQuizResult({
-          quizId: quiz.id,
-          quizTitle: quiz.title,
-          score: score,
-          totalQuestions: questions.length,
-          correctAnswers: correctAnswers,
-          difficulty: quiz.difficulty,
-          category: quiz.category,
-          userAnswers: userAnswers,
-          questions: questions
-        });
+        const result = await saveQuizResult(
+          quiz.id,           // quizId
+          score,             // score
+          questions.length,  // totalQuestions
+          0                  // timeSpent (dalam detik, bisa dihitung jika perlu)
+        );
 
-        setNewBadges(result.newBadges || []);
-        setXpEarned(result.quizResult.xpEarned);
+        if (result) {
+          setNewBadges(result.newBadges || []);
+          setXpEarned(result.xpEarned || 0);
+        }
       } catch (error) {
         console.error('Error saving quiz result:', error);
       } finally {
@@ -343,38 +340,6 @@ const EnhancedQuizResult = ({ quiz, score, userAnswers, questions, onRetry, onBa
                             <div className="mb-4 p-4 rounded-lg bg-green-50 border border-green-200">
                               <div className="text-sm text-green-600 mb-2 font-medium">Jawaban Benar:</div>
                               <div className="font-medium text-lg text-green-700">{correctAnswerText}</div>
-                            </div>
-                            
-                            {/* Detailed Explanation */}
-                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                              <div className="flex items-center gap-2 mb-3">
-                                <span className="text-blue-600 font-semibold text-lg">💡 Penjelasan Detail</span>
-                              </div>
-                              <p className="text-gray-700 leading-relaxed">
-                                {question.explanation}
-                              </p>
-                              
-                              {/* Learning Tips */}
-                              {question.learningTips && (
-                                <div className="mt-4 p-3 bg-white rounded border border-blue-100">
-                                  <div className="text-blue-600 font-medium mb-2">🎯 Tips Belajar:</div>
-                                  <p className="text-gray-600">{question.learningTips}</p>
-                                </div>
-                              )}
-                              
-                              {/* Related Concepts */}
-                              {question.relatedConcepts && question.relatedConcepts.length > 0 && (
-                                <div className="mt-4">
-                                  <div className="text-blue-600 font-medium mb-2">📚 Konsep Terkait:</div>
-                                  <div className="flex flex-wrap gap-2">
-                                    {question.relatedConcepts.map((concept, i) => (
-                                      <span key={i} className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                                        {concept}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>

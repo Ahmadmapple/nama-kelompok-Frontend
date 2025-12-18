@@ -1,320 +1,515 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
-import Footer from '../components/layout/Footer';
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const Articles = () => {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const categories = [
-    { id: 'all', name: 'Semua Kategori', count: 24 },
-    { id: 'digital-literacy', name: 'Literasi Digital', count: 8 },
-    { id: 'critical-thinking', name: 'Berpikir Kritis', count: 6 },
-    { id: 'reading-techniques', name: 'Teknik Membaca', count: 5 },
-    { id: 'research-skills', name: 'Skill Research', count: 3 },
-    { id: 'fact-checking', name: 'Fact-Checking', count: 2 }
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [ownershipFilter, setOwnershipFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingArticle, setEditingArticle] = useState(null);
+  const [editForm, setEditForm] = useState({
+    nama_artikel: "",
+    deskripsi: "",
+    kategori: "",
+    kesulitan: "Pemula",
+    perkiraan_waktu_menit: "",
+    tags: "",
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const STATIC_CATEGORIES = [
+    { id: "digital-literacy", name: "Literasi Digital" },
+    { id: "critical-thinking", name: "Berpikir Kritis" },
+    { id: "reading-tech", name: "Teknik Membaca" },
+    { id: "research-skills", name: "Skill Research" },
+    { id: "fact-checking", name: "Fact-Checking" },
   ];
 
-  const articles = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1588666309990-d68f08e3d4a6?auto=format&fit=crop&w=800&q=80',
-      category: 'digital-literacy',
-      title: '5 Cara Meningkatkan Literasi Digital di Era Informasi',
-      excerpt: 'Pelajari strategi praktis untuk menjadi konsumen informasi yang lebih cerdas dan kritis di dunia digital yang penuh dengan konten. Temukan tools dan teknik untuk verifikasi informasi.',
-      readTime: '5 min read',
-      views: '2.5k',
-      likes: '1.2k',
-      author: 'Sarah Wijaya',
-      authorImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=100&q=80',
-      date: '15 Nov 2023',
-      difficulty: 'Pemula',
-      tags: ['Literasi Digital', 'Hoaks', 'Verifikasi']
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=800&q=80',
-      category: 'reading-techniques',
-      title: 'Teknik Membaca Cepat untuk Pemula: Tingkatkan Efisiensi Membaca Anda',
-      excerpt: 'Tingkatkan kecepatan membaca Anda tanpa mengorbankan pemahaman dengan teknik-teknik yang terbukti efektif. Mulai dari basic sampai advanced techniques.',
-      readTime: '7 min read',
-      views: '3.1k',
-      likes: '1.8k',
-      author: 'Ahmad Fauzi',
-      authorImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80',
-      date: '12 Nov 2023',
-      difficulty: 'Menengah',
-      tags: ['Speed Reading', 'Pemahaman', 'Teknik']
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80',
-      category: 'critical-thinking',
-      title: 'Mengasah Kemampuan Berpikir Kritis Melalui Membaca',
-      excerpt: 'Temukan bagaimana kebiasaan membaca dapat mengembangkan kemampuan analisis dan evaluasi informasi secara kritis. Practical guide untuk daily practice.',
-      readTime: '6 min read',
-      views: '1.8k',
-      likes: '950',
-      author: 'Maria Santoso',
-      authorImage: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&q=80',
-      date: '10 Nov 2023',
-      difficulty: 'Lanjutan',
-      tags: ['Critical Thinking', 'Analisis', 'Logika']
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?auto=format&fit=crop&w=800&q=80',
-      category: 'fact-checking',
-      title: 'Panduan Lengkap Fact-Checking: Cara Verifikasi Informasi dengan Benar',
-      excerpt: 'Step-by-step guide untuk memverifikasi informasi dan menghindari hoaks di era digital. Dilengkapi dengan tools dan resources terbaru.',
-      readTime: '8 min read',
-      views: '4.2k',
-      likes: '2.1k',
-      author: 'Dr. Budi Setiawan',
-      authorImage: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=100&q=80',
-      date: '8 Nov 2023',
-      difficulty: 'Menengah',
-      tags: ['Fact-Checking', 'Hoaks', 'Verifikasi']
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=800&q=80',
-      category: 'research-skills',
-      title: 'Cara Menelusuri Sumber Terpercaya untuk Penelitian Akademis',
-      excerpt: 'Teknik efektif untuk menemukan dan mengevaluasi sumber informasi yang kredibel untuk penelitian. Tips dari researcher profesional.',
-      readTime: '10 min read',
-      views: '2.1k',
-      likes: '1.1k',
-      author: 'Prof. Sari Dewi',
-      authorImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=100&q=80',
-      date: '5 Nov 2023',
-      difficulty: 'Lanjutan',
-      tags: ['Research', 'Sumber', 'Akademik']
-    },
-    {
-      id: 6,
-      image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
-      category: 'digital-literacy',
-      title: 'Memahami Bias Media: Cara Membaca Berita dengan Kritis',
-      excerpt: 'Pelajari cara mengidentifikasi bias dalam pemberitaan dan menjadi konsumen media yang lebih cerdas. Case studies dan practical examples.',
-      readTime: '6 min read',
-      views: '3.5k',
-      likes: '1.7k',
-      author: 'Rina Hartati',
-      authorImage: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?auto=format&fit=crop&w=100&q=80',
-      date: '3 Nov 2023',
-      difficulty: 'Menengah',
-      tags: ['Media Literacy', 'Bias', 'Berita']
+  // ================= FETCH ARTICLES =================
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/article/`);
+        setArticles(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Gagal ambil artikel:", err.message);
+        setArticles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticles();
+  }, []);
+
+  // ================= HITUNG JUMLAH ARTIKEL PER KATEGORI =================
+  const articleCategories = useMemo(() => {
+    const categoryCounts = articles.reduce((acc, article) => {
+      const categoryId = article.kategori;
+      if (categoryId) acc[categoryId] = (acc[categoryId] || 0) + 1;
+      return acc;
+    }, {});
+
+    const categoriesWithCount = STATIC_CATEGORIES.map((cat) => ({
+      ...cat,
+      count: categoryCounts[cat.id] || 0,
+    }));
+
+    return [
+      { id: "all", name: "Semua Kategori", count: articles.length },
+      ...categoriesWithCount,
+    ];
+  }, [articles]);
+
+  // ================= FILTERING =================
+  const filteredArticles = useMemo(() => {
+    let result =
+      activeCategory === "all"
+        ? articles
+        : articles.filter((a) => a.kategori === activeCategory);
+
+    if (ownershipFilter === "mine") {
+      if (!user?.id) return [];
+      result = result.filter((a) => a.author?.id === user.id);
     }
-  ];
 
-  const filteredArticles = activeCategory === 'all' 
-    ? articles 
-    : articles.filter(article => article.category === activeCategory);
+    return result;
+  }, [articles, activeCategory, ownershipFilter, user]);
 
-  const searchedArticles = searchQuery 
-    ? filteredArticles.filter(article => 
-        article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : filteredArticles;
+  const searchedArticles = useMemo(() => {
+    if (!searchQuery) return filteredArticles;
+    const query = searchQuery.toLowerCase();
+    return filteredArticles.filter(
+      (a) =>
+        a.nama_artikel?.toLowerCase().includes(query) ||
+        a.deskripsi?.toLowerCase().includes(query) ||
+        a.tags?.some((t) => t.toLowerCase().includes(query))
+    );
+  }, [filteredArticles, searchQuery]);
+
+  // ================= HANDLE ARTICLE CLICK =================
+  const handleArticleClick = async (article) => {
+    const token = localStorage.getItem("mindloop_token");
+
+    // Jika user login, update riwayat dan progres
+    if (token) {
+      const headers = { Authorization: `Bearer ${token}` };
+
+      try {
+        // 1️⃣ Catat riwayat baca artikel
+        await axios.post(
+          `${API_BASE_URL}/api/article/${article.id_artikel}/riwayat-baca`,
+          {},
+          { headers }
+        );
+
+        // 2️⃣ Update progres pengguna (waktu membaca & jumlah artikel dibuka)
+        await axios.post(
+          `${API_BASE_URL}/api/article/${article.id_artikel}/progres`,
+          { durasi: Number(article.perkiraan_waktu_menit) },
+          { headers }
+        );
+      } catch (err) {
+        console.error("Gagal update riwayat/progres:", err.message);
+      }
+    }
+
+    // 3️⃣ Navigate ke detail artikel (guest dan user login sama-sama bisa)
+    navigate(`/articles/${article.id_artikel}`);
+  };
+
+  const openEdit = (article) => {
+    setEditingArticle(article);
+    setEditForm({
+      nama_artikel: article.nama_artikel || "",
+      deskripsi: article.deskripsi || "",
+      kategori: article.kategori || "digital-literacy",
+      kesulitan: article.kesulitan || "Pemula",
+      perkiraan_waktu_menit: String(article.perkiraan_waktu_menit ?? ""),
+      tags: Array.isArray(article.tags) ? article.tags.join(", ") : "",
+    });
+  };
+
+  const submitEdit = async () => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem("mindloop_token");
+
+      const tagsArray = editForm.tags
+        ? editForm.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [];
+
+      await axios.put(
+        `${API_BASE_URL}/api/article/${editingArticle.id_artikel}`,
+        {
+          nama_artikel: editForm.nama_artikel,
+          deskripsi: editForm.deskripsi,
+          kategori: editForm.kategori,
+          kesulitan: editForm.kesulitan,
+          perkiraan_waktu_menit: editForm.perkiraan_waktu_menit,
+          tags: tagsArray,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setArticles((prev) =>
+        prev.map((a) =>
+          a.id_artikel === editingArticle.id_artikel
+            ? {
+                ...a,
+                nama_artikel: editForm.nama_artikel,
+                deskripsi: editForm.deskripsi,
+                kategori: editForm.kategori,
+                kesulitan: editForm.kesulitan,
+                perkiraan_waktu_menit: Number(editForm.perkiraan_waktu_menit) || a.perkiraan_waktu_menit,
+                tags: tagsArray,
+              }
+            : a
+        )
+      );
+
+      setEditingArticle(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const token = localStorage.getItem("mindloop_token");
+      await axios.delete(`${API_BASE_URL}/api/article/${deleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setArticles((prev) => prev.filter((a) => a.id_artikel !== deleteId));
+      setDeleteId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
-      {/* Hero Section */}
+
+      {/* HERO */}
       <section className="pt-32 pb-20 bg-gradient-to-br from-white to-indigo-50">
-        <div className="container-optimized">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-              Perpustakaan <span className="gradient-text">Artikel Literasi</span>
-            </h1>
-            <p className="text-xl text-gray-600 leading-relaxed mb-8">
-              Jelajahi koleksi artikel premium kami yang dirancang untuk meningkatkan 
-              kemampuan membaca kritis, analisis informasi, dan berpikir logis.
-            </p>
-            
-            {/* Search Bar */}
-            <div className="max-w-2xl mx-auto">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Cari artikel, topik, atau penulis..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-6 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg"
-                />
-                <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        <div className="container-optimized text-center max-w-4xl mx-auto">
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl font-bold mb-6 break-words">
+            Perpustakaan <span className="gradient-text">Artikel Literasi</span>
+          </h1>
+          <input
+            type="text"
+            placeholder="Cari artikel..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full max-w-2xl px-6 py-4 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
         </div>
       </section>
 
-      {/* Category Filter */}
-      <section className="py-8 bg-white border-b border-gray-200 top-0 z-40">
-        <div className="container-optimized">
-          <div className="flex gap-3 overflow-x-auto no-scrollbar px-2 py-1">
-            {categories.map(category => (
+      {/* CATEGORY FILTER */}
+      <section className="py-6 bg-white border-b">
+        <div className="container-optimized flex flex-col gap-3">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar whitespace-nowrap">
+            {articleCategories.map((cat) => (
               <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`px-3 py-2 rounded-lg text-xs md:px-5 md:py-3 md:text-sm font-medium ${
-                  activeCategory === category.id
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  activeCategory === cat.id
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                {category.name}
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  activeCategory === category.id
-                    ? 'bg-white/20 text-white'
-                    : 'bg-gray-300 text-gray-700'
-                }`}>
-                  {category.count}
+                {cat.name}
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    activeCategory === cat.id
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-300 text-gray-700"
+                  }`}
+                >
+                  {cat.count}
                 </span>
               </button>
             ))}
           </div>
+
+          <div className="flex justify-end">
+            <div className="inline-flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setOwnershipFilter("all")}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                  ownershipFilter === "all"
+                    ? "bg-white text-gray-900 shadow"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                onClick={() => setOwnershipFilter("mine")}
+                disabled={!user}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                  ownershipFilter === "mine"
+                    ? "bg-white text-gray-900 shadow"
+                    : "text-gray-600 hover:text-gray-900"
+                } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                Buatan Saya
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Articles Grid */}
+      {/* CONTENT */}
       <section className="py-16">
         <div className="container-optimized">
-          {searchedArticles.length === 0 ? (
-            <div className="text-center py-16">
-              <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Tidak ada artikel ditemukan</h3>
-              <p className="text-gray-600 mb-6">Coba gunakan kata kunci lain atau jelajahi kategori yang berbeda</p>
-              <button 
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveCategory('all');
-                }}
-                className="btn btn-primary"
-              >
-                Tampilkan Semua Artikel
-              </button>
-            </div>
-          ) : (
+          {loading && <p className="text-center text-gray-500">Memuat artikel...</p>}
+          {!loading && searchedArticles.length === 0 && (
+            <p className="text-center text-gray-500">Tidak ada artikel ditemukan</p>
+          )}
+
+          {!loading && searchedArticles.length > 0 && (
             <>
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {activeCategory === 'all' ? 'Semua Artikel' : categories.find(cat => cat.id === activeCategory)?.name}
-                  </h2>
-                  <p className="text-gray-600">
-                    Menampilkan {searchedArticles.length} artikel
-                    {searchQuery && ` untuk "${searchQuery}"`}
-                  </p>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Diurutkan berdasarkan: <span className="font-medium text-gray-900">Terbaru</span>
-                </div>
-              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">
+                {articleCategories.find((c) => c.id === activeCategory)?.name} (
+                {searchedArticles.length})
+              </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {searchedArticles.map(article => (
-                  <Link 
-                    key={article.id}
-                    to={`/articles/${article.id}`}
-                    className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden hover:shadow-strong transition-all duration-300 group"
+                {searchedArticles.map((article) => (
+                  <div
+                    key={article.id_artikel}
+                    onClick={() => handleArticleClick(article)}
+                    className="cursor-pointer bg-white rounded-2xl shadow-soft border overflow-hidden hover:shadow-strong transition group"
                   >
-                    <div className="h-48 overflow-hidden relative">
-                      <img 
-                        src={article.image} 
-                        alt={article.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    {/* IMAGE */}
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={article.gambar_artikel || "/placeholder.jpg"}
+                        alt={article.nama_artikel}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                       />
+
                       <div className="absolute top-4 left-4 flex gap-2">
-                        <span className="inline-block bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium">
-                          {categories.find(cat => cat.id === article.category)?.name}
+                        <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-medium">
+                          {articleCategories.find((c) => c.id === article.kategori)?.name}
                         </span>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          article.difficulty === 'Pemula' ? 'bg-green-100 text-green-800' :
-                          article.difficulty === 'Menengah' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {article.difficulty}
+                        <span
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            article.kesulitan === "Pemula"
+                              ? "bg-green-100 text-green-800"
+                              : article.kesulitan === "Menengah"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {article.kesulitan}
                         </span>
                       </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="font-bold text-xl text-gray-900 mb-3 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">
-                        {article.title}
-                      </h3>
-                      
-                      <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3">
-                        {article.excerpt}
-                      </p>
-                      
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {article.tags.map((tag, index) => (
-                          <span key={index} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {article.readTime}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            {article.views}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                            {article.likes}
-                          </span>
+
+                      {user?.id && article.author?.id === user.id && (
+                        <div className="absolute top-4 right-4 flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(article);
+                            }}
+                            className="bg-white/90 hover:bg-white text-gray-900 text-xs font-semibold px-3 py-1 rounded-full"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteId(article.id_artikel);
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded-full"
+                          >
+                            Hapus
+                          </button>
                         </div>
-                        <span>{article.date}</span>
+                      )}
+                    </div>
+
+                    {/* BODY */}
+                    <div className="p-6">
+                      <h3 className="font-bold text-xl mb-3 line-clamp-2 group-hover:text-indigo-600">
+                        {article.nama_artikel}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                        {article.deskripsi}
+                      </p>
+
+                      {/* TAGS */}
+                      {article.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {article.tags.map((tag, i) => (
+                            <span
+                              key={i}
+                              className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* META */}
+                      <div className="flex justify-between text-sm text-gray-500">
+                        <span>{article.perkiraan_waktu_menit} min read</span>
+                        <span>❤️ {article.like_artikel}</span>
                       </div>
-                      
-                      <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">
-                        <img 
-                          src={article.authorImage} 
-                          alt={article.author}
-                          className="w-8 h-8 rounded-full"
+
+                      {/* AUTHOR */}
+                      <div className="flex items-center gap-3 mt-4 pt-4 border-t">
+                        <img
+                          src={article.author?.avatar || "/avatar-default.png"}
+                          className="w-8 h-8 rounded-full object-cover"
                         />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{article.author}</div>
-                          <div className="text-xs text-gray-500">Penulis</div>
+                          <p className="text-sm font-medium">{article.author?.nama}</p>
+                          <p className="text-xs text-gray-500">Penulis</p>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </>
           )}
+
+          {editingArticle && (
+            <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+              <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">
+                  <h2 className="text-lg font-semibold mb-4">Edit Artikel</h2>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <input
+                      value={editForm.nama_artikel}
+                      onChange={(e) => setEditForm((p) => ({ ...p, nama_artikel: e.target.value }))}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Judul"
+                    />
+                    <textarea
+                      value={editForm.deskripsi}
+                      onChange={(e) => setEditForm((p) => ({ ...p, deskripsi: e.target.value }))}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Deskripsi"
+                      rows={3}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <select
+                        value={editForm.kategori}
+                        onChange={(e) => setEditForm((p) => ({ ...p, kategori: e.target.value }))}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        {STATIC_CATEGORIES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={editForm.kesulitan}
+                        onChange={(e) => setEditForm((p) => ({ ...p, kesulitan: e.target.value }))}
+                        className="w-full px-4 py-2 border rounded-lg"
+                      >
+                        <option value="Pemula">Pemula</option>
+                        <option value="Menengah">Menengah</option>
+                        <option value="Lanjutan">Lanjutan</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        value={editForm.perkiraan_waktu_menit}
+                        onChange={(e) => setEditForm((p) => ({ ...p, perkiraan_waktu_menit: e.target.value }))}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="Perkiraan waktu (menit)"
+                        inputMode="numeric"
+                      />
+                      <input
+                        value={editForm.tags}
+                        onChange={(e) => setEditForm((p) => ({ ...p, tags: e.target.value }))}
+                        className="w-full px-4 py-2 border rounded-lg"
+                        placeholder="Tags (pisahkan dengan koma)"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setEditingArticle(null)}
+                      className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+                      disabled={isSaving}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={submitEdit}
+                      className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? "Menyimpan..." : "Simpan"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {deleteId && (
+            <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+              <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
+                  <h2 className="text-lg font-semibold mb-2">Hapus Artikel?</h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Artikel yang dihapus tidak bisa dikembalikan.
+                  </p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setDeleteId(null)}
+                      className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
-      
+
       <Footer />
     </div>
   );
 };
 
 export default Articles;
-//penanda

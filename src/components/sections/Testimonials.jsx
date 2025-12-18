@@ -99,13 +99,13 @@ const Testimonials = () => {
 
         {/* Social Proof Footer */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-6 bg-gray-50 px-6 py-4 rounded-2xl border border-gray-200">
+          <div className="flex flex-col xs:flex-row xs:flex-wrap items-center justify-center gap-3 xs:gap-6 bg-gray-50 px-4 sm:px-6 py-4 rounded-2xl border border-gray-200 max-w-full">
             <div className="flex -space-x-3">
               {[1,2,3,4,5].map((i) => (
                 <div key={i} className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
               ))}
             </div>
-            <div className="text-left">
+            <div className="text-center xs:text-left">
               <div className="text-gray-900 font-semibold">
                 <strong>2,500+</strong> review positif
               </div>

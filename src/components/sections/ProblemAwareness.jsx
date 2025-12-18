@@ -38,7 +38,7 @@ const ProblemAwareness = () => {
     <section className="py-16 md:py-20 bg-white">
       <div className="container-optimized">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 max-w-full bg-red-50 text-red-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             Masalah Literasi
           </div>

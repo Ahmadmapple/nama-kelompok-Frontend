@@ -4,7 +4,7 @@ const DemoSection = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   return (
-    <section className="section-optimized bg-gray-50">
+    <section id="demo" className="section-optimized bg-gray-50">
       <div className="container-optimized">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Content */}
@@ -52,9 +52,7 @@ const DemoSection = () => {
                 </svg>
                 Tonton Demo Video
               </button>
-              <button className="btn btn-secondary justify-center">
-                Coba Demo Interaktif
-              </button>
+              
             </div>
           </div>
 
@@ -90,7 +88,7 @@ const DemoSection = () => {
             </div>
             
             {/* Floating Stats */}
-            <div className="absolute -bottom-4 -left-4 bg-white rounded-xl p-3 shadow-strong border border-gray-100">
+            <div className="absolute bottom-2 left-2 sm:-bottom-4 sm:-left-4 bg-white rounded-xl p-3 shadow-strong border border-gray-100">
               <div className="text-center">
                 <div className="text-lg font-bold text-indigo-600">5:24</div>
                 <div className="text-xs text-gray-500">Durasi Demo</div>
@@ -104,4 +102,3 @@ const DemoSection = () => {
 };
 
 export default DemoSection;
-//penanda

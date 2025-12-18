@@ -1,56 +1,77 @@
 // src/components/layout/Navbar.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 // =========================================================
 // FUNGSI PEMBANTU: Mendapatkan URL Avatar (Foto Asli atau Inisial)
 // =========================================================
 const getAvatarUrl = (name, existingAvatarUrl) => {
-  // 1. Cek: Jika sudah ada URL avatar yang valid dari database, gunakan itu.
-  if (existingAvatarUrl && 
-      existingAvatarUrl !== "" && 
-      !existingAvatarUrl.includes("placeholder")) {
-    return existingAvatarUrl;
+  // Bersihkan URL dari spasi/karakter tidak terlihat
+  const cleanedUrl = existingAvatarUrl ? existingAvatarUrl.trim() : "";
+
+  // KONDISI 1: Jika sudah ada URL yang JELAS BUKAN URL INISIAL/PLACEHOLDER, gunakan itu.
+  if (
+    cleanedUrl &&
+    cleanedUrl !== "" &&
+    !cleanedUrl.includes("ui-avatars.com") && 
+    !cleanedUrl.includes("placeholder")
+  ) {
+    return cleanedUrl;
   }
-  
-  // 2. Fallback: Jika tidak ada foto, buat URL inisial dari nama.
-  // Menggunakan ui-avatars.com
-  const size = 150; // Ukuran standar untuk avatar
-  const color = 'FFFFFF'; 
-  const background = '4C51BF'; // Indigo
-  
-  // Catatan: Jika user.name kosong, kita dapat menggunakan "U" (User) sebagai fallback
+
+  // KONDISI 2: Fallback ke URL Inisial
+  const size = 150;
+  const color = "FFFFFF";
+  const background = "4C51BF";
+
   const nameToDisplay = name && name.trim() !== "" ? name : "U";
-  
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(nameToDisplay)}&size=${size}&color=${color}&background=${background}&bold=true`;
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    nameToDisplay
+  )}&size=${size}&color=${color}&background=${background}&bold=true`;
 };
 // =========================================================
 
-
 const Navbar = () => {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
-  
+
   // === LOGIKA AVATAR BARU ===
-  const userAvatarUrl = user 
-    ? getAvatarUrl(user.name, user.avatar) 
-    : "/placeholder-avatar.jpg"; // Fallback default jika user tidak login
+  const userAvatarUrl =
+    user && user.avatar && user.avatar.trim() !== ""
+      ? user.avatar
+      : user
+      ? getAvatarUrl(user.name)
+      : "/placeholder-avatar.jpg";
   // ==========================
 
-  // EFFECT 1: Handle Scroll (Mengubah style Navbar)
+  // EFFECT 1: Handle Scroll
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // EFFECT 2: Handle Click Outside (Menutup menu/dropdown)
+  // EFFECT 1b: Lock body scroll when mobile menu is open
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = prevOverflow || "";
+    }
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  // EFFECT 2: Handle Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileDropdownOpen && !event.target.closest(".profile-dropdown")) {
@@ -60,7 +81,6 @@ const Navbar = () => {
         setMobileMenuOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [profileDropdownOpen, mobileMenuOpen]);
@@ -137,17 +157,15 @@ const Navbar = () => {
     logout();
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
+    navigate("/"); // Redirect to homepage after logout
   };
 
   const handleNavClick = (href, type) => {
-    setMobileMenuOpen(false); 
-    setProfileDropdownOpen(false); 
-
+    setMobileMenuOpen(false);
+    setProfileDropdownOpen(false);
     if (type === "anchor") {
       const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+      if (element) element.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -166,7 +184,7 @@ const Navbar = () => {
     >
       <div className="container-optimized">
         <div className="flex items-center justify-between">
-          {/* 1. Logo */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 md:gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-indigo-600 to-emerald-500 rounded-lg md:rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
               <svg
@@ -188,7 +206,7 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* 2. Desktop Navigation Links */}
+          {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
             {navigation.map((item) => (
               <Link
@@ -197,7 +215,6 @@ const Navbar = () => {
                 className="nav-link text-sm lg:text-base relative group"
               >
                 {item.name}
-                {/* Badge/Notifikasi Kuis */}
                 {item.name === "Kuis" && (
                   <span className="absolute -top-1 -right-2">
                     <span className="relative flex h-2 w-2">
@@ -206,7 +223,6 @@ const Navbar = () => {
                     </span>
                   </span>
                 )}
-                {/* Badge/Notifikasi Event */}
                 {item.name === "Event" && (
                   <span className="absolute -top-1 -right-2">
                     <span className="relative flex h-2 w-2">
@@ -219,28 +235,26 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* 3. CTA Buttons / User Profile */}
+          {/* User Profile / Auth Buttons */}
           <div className="flex items-center gap-2 md:gap-4">
             {user ? (
-              /* User Logged In */
               <div className="flex items-center gap-4">
-                {/* Desktop Profile Dropdown */}
+                {/* Desktop */}
                 <div className="hidden md:block relative profile-dropdown">
                   <button
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    onClick={() =>
+                      setProfileDropdownOpen(!profileDropdownOpen)
+                    }
                     className="flex items-center gap-2 p-1 rounded-full text-gray-700 hover:text-indigo-600 transition-colors group"
                   >
-                    {/* IMPLEMENTASI AVATAR DENGAN FALLBACK INISIAL */}
                     <img
-                      src={userAvatarUrl} 
+                      src={userAvatarUrl}
                       alt={user.name}
                       className="w-8 h-8 rounded-full border-2 border-gray-200 group-hover:border-indigo-200 transition-colors object-cover"
                     />
-
                     <span className="text-sm font-medium max-w-32 truncate hidden lg:inline">
                       {user.name}
                     </span>
-
                     <svg
                       className={`w-4 h-4 transition-transform ${
                         profileDropdownOpen ? "rotate-180" : ""
@@ -258,10 +272,8 @@ const Navbar = () => {
                     </svg>
                   </button>
 
-                  {/* Profile Dropdown Menu */}
                   {profileDropdownOpen && (
                     <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-strong border border-gray-100 py-2 z-50">
-                      {/* Dashboard Link */}
                       <Link
                         to="/profile"
                         onClick={handleProfileLinkClick}
@@ -284,7 +296,7 @@ const Navbar = () => {
                       </Link>
 
                       <div className="border-t border-gray-100 my-1"></div>
-                      {/* Create Menu Items */}
+
                       <div className="py-1">
                         {createMenuItems.map((item) => (
                           <Link
@@ -301,7 +313,6 @@ const Navbar = () => {
 
                       <div className="border-t border-gray-100 my-1"></div>
 
-                      {/* Logout Button */}
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -324,23 +335,21 @@ const Navbar = () => {
                     </div>
                   )}
                 </div>
-                
-                {/* Mobile Profile Link (Icon only) */}
+
+                {/* Mobile */}
                 <Link
                   to="/profile"
                   className="md:hidden flex items-center gap-2 text-gray-700 hover:text-indigo-600 transition-colors"
                   onClick={handleProfileLinkClick}
                 >
-                  {/* IMPLEMENTASI AVATAR DENGAN FALLBACK INISIAL */}
                   <img
-                    src={userAvatarUrl} 
+                    src={userAvatarUrl}
                     alt={user.name}
                     className="w-8 h-8 rounded-full border-2 border-gray-200 object-cover"
                   />
                 </Link>
               </div>
             ) : (
-              /* User Not Logged In */
               <>
                 <Link
                   to="/login"
@@ -348,10 +357,9 @@ const Navbar = () => {
                 >
                   Masuk
                 </Link>
-
                 <Link
                   to="/register"
-                  className="btn btn-primary text-sm md:text-base"
+                  className="btn btn-primary px-3 py-2 text-xs xs:text-sm md:text-base"
                 >
                   Daftar Gratis
                 </Link>
@@ -380,11 +388,10 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* 4. Mobile Menu Content */}
+        {/* Mobile Menu Content */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu-container bg-white">
+          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu-container bg-white max-h-[70vh] overflow-y-auto overscroll-contain">
             <div className="flex flex-col space-y-3">
-              {/* Primary Navigation Links (Mobile) */}
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -393,14 +400,12 @@ const Navbar = () => {
                   onClick={() => handleNavClick(item.href, item.type)}
                 >
                   {item.name}
-                  {/* Badge/Notifikasi Kuis */}
                   {item.name === "Kuis" && (
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
                   )}
-                  {/* Badge/Notifikasi Event */}
                   {item.name === "Event" && (
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
@@ -410,25 +415,21 @@ const Navbar = () => {
                 </Link>
               ))}
 
-              {/* Mobile Auth/User Menu */}
               {user ? (
                 <div className="pt-4 border-t border-gray-200 space-y-3">
-                  {/* Dashboard Link (Mobile) */}
                   <Link
                     to="/profile"
                     className="flex items-center gap-3 px-2 py-2 text-gray-700 hover:text-indigo-600 transition-colors"
                     onClick={handleProfileLinkClick}
                   >
-                    {/* IMPLEMENTASI AVATAR DENGAN FALLBACK INISIAL */}
                     <img
-                      src={userAvatarUrl} 
+                      src={userAvatarUrl}
                       alt={user.name}
                       className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                     />
                     <span>Dashboard</span>
                   </Link>
 
-                  {/* Create Menu Items (Mobile) */}
                   <div className="space-y-1 pl-2">
                     {createMenuItems.map((item) => (
                       <Link
@@ -442,9 +443,9 @@ const Navbar = () => {
                       </Link>
                     ))}
                   </div>
+
                   <div className="border-t border-gray-200 my-3"></div>
 
-                  {/* Logout Button (Mobile) */}
                   <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-2 py-2 text-red-600 hover:text-red-700 transition-colors"
@@ -466,7 +467,6 @@ const Navbar = () => {
                   </button>
                 </div>
               ) : (
-                /* Auth Buttons (Mobile) */
                 <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
                   <Link
                     to="/login"

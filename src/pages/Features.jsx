@@ -8,8 +8,8 @@ const Features = () => {
   const features = [
     {
       icon: '📚',
-      title: 'Konten Terkurasi',
-      description: 'Akses koleksi artikel, kuis, dan materi literasi yang dipilih khusus untuk meningkatkan kemampuan membaca dan berpikir kritis Anda.',
+      title: 'Konten Edukatif',
+      description: 'Akses berbagai artikel, kuis, dan materi literasi yang dirancang untuk membantu meningkatkan kemampuan membaca dan berpikir kritis Anda.',
       color: 'from-blue-500 to-cyan-500'
     },
     {
@@ -29,12 +29,6 @@ const Features = () => {
       title: 'Progress Tracking',
       description: 'Pantau perkembangan literasi Anda dengan dashboard yang menampilkan statistik membaca, skor kuis, dan pencapaian.',
       color: 'from-green-500 to-emerald-500'
-    },
-    {
-      icon: '👥',
-      title: 'Komunitas Interaktif',
-      description: 'Bergabung dengan komunitas pembaca, diskusikan artikel favorit, dan bagikan insight dengan sesama anggota.',
-      color: 'from-indigo-500 to-purple-500'
     },
     {
       icon: '🎯',

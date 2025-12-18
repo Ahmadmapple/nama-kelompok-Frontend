@@ -1,14 +1,16 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthCenteredLayout from "../../components/auth/AuthCenteredLayout";
+import { useAlert } from "../../context/AlertContext";
 
 const EmailVerification = () => {
-  const [code, setCode] = useState(Array(6).fill("")); // store as array for easier editing
+  const [code, setCode] = useState(Array(6).fill(""));
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const inputsRef = useRef([]);
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
 
   const handleChange = (e, index) => {
     const val = e.target.value.replace(/\D/g, ""); // only digits
@@ -101,16 +103,20 @@ const EmailVerification = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Kode OTP baru telah dikirim ke email Anda.");
-
-        // === PERBAIKAN DI SINI: SIMPAN TOKEN OTP BARU DARI RESPONSE ===
-        if (data.token) {
-          localStorage.setItem("otpToken", data.token);
+        // Simpan token OTP baru dari response
+        if (data.verificationToken) {
+          localStorage.setItem("otpToken", data.verificationToken);
+          console.log('New OTP token saved, length:', data.verificationToken.length);
         }
-        // ==============================================================
 
-        setCode(Array(6).fill("")); // clear previous input
-        inputsRef.current[0]?.focus(); // focus first box
+        setCode(Array(6).fill(""));
+        inputsRef.current[0]?.focus();
+        
+        showAlert({
+          title: "OTP Terkirim",
+          message: "Kode OTP baru telah dikirim ke email Anda.",
+          type: "success"
+        });
       } else {
         setError(data.error || "Gagal mengirim ulang kode OTP.");
       }

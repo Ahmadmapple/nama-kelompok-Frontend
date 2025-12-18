@@ -1,33 +1,57 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ArrowLeft, UserX } from "lucide-react";
+import axios from "axios";
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 export default function AdminUsers() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // dummy data (nanti ganti API)
-    setUsers([
-      { id: 1, name: "Admin", email: "admin@test.com", verified: true },
-      { id: 2, name: "User A", email: "a@test.com", verified: true },
-      { id: 3, name: "User B", email: "b@test.com", verified: false },
-    ]);
+    fetchUsers();
   }, []);
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("mindloop_token");
+      const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers(response.data.users || []);
+    } catch (err) {
+      setError("Gagal mengambil data users");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openDelete = (user) => {
-    if (!user.verified) {
+    if (!user.is_verified) {
       setError("User belum terverifikasi dan tidak bisa dihapus.");
       return;
     }
     setSelectedUser(user);
   };
 
-  const confirmDelete = () => {
-    setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
-    setSelectedUser(null);
+  const confirmDelete = async () => {
+    try {
+      const token = localStorage.getItem("mindloop_token");
+      await axios.delete(`${API_BASE_URL}/api/admin/users/${selectedUser.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+      setSelectedUser(null);
+    } catch (err) {
+      setError("Gagal menghapus user");
+      console.error(err);
+    }
   };
 
   return (
@@ -56,60 +80,68 @@ export default function AdminUsers() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-gray-600">
-            <tr>
-              <th className="p-4 text-left">Nama</th>
-              <th className="p-4 text-left">Email</th>
-              <th className="p-4 text-center">Status</th>
-              <th className="p-4 text-center">Aksi</th>
-            </tr>
-          </thead>
+      {loading ? (
+        <div className="bg-white rounded-xl shadow p-8 text-center">
+          <p className="text-gray-500">Memuat data...</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-max w-full text-sm">
+              <thead className="bg-gray-100 text-gray-600">
+                <tr>
+                  <th className="p-4 text-left">Nama</th>
+                  <th className="p-4 text-left">Email</th>
+                  <th className="p-4 text-center">Status</th>
+                  <th className="p-4 text-center">Aksi</th>
+                </tr>
+              </thead>
 
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t hover:bg-gray-50">
-                <td className="p-4">{u.name}</td>
-                <td className="p-4">{u.email}</td>
-                <td className="p-4 text-center">
-                  {u.verified ? (
-                    <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                      Verified
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-600">
-                      Unverified
-                    </span>
-                  )}
-                </td>
-                <td className="p-4 text-center">
-                  <button
-                    onClick={() => openDelete(u)}
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded text-sm
-                      ${
-                        u.verified
-                          ? "text-red-600 hover:text-red-800"
-                          : "text-gray-400 cursor-not-allowed"
-                      }`}
-                  >
-                    <Trash2 size={16} />
-                    Hapus
-                  </button>
-                </td>
-              </tr>
-            ))}
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-t hover:bg-gray-50">
+                    <td className="p-4">{u.name}</td>
+                    <td className="p-4">{u.email}</td>
+                    <td className="p-4 text-center">
+                      {u.is_verified ? (
+                        <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                          Verified
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-600">
+                          Unverified
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => openDelete(u)}
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded text-sm
+                          ${
+                            u.is_verified
+                              ? "text-red-600 hover:text-red-800"
+                              : "text-gray-400 cursor-not-allowed"
+                          }`}
+                      >
+                        <Trash2 size={16} />
+                        Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
 
-            {users.length === 0 && (
-              <tr>
-                <td colSpan="4" className="p-6 text-center text-gray-500">
-                  Tidak ada user
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan="4" className="p-6 text-center text-gray-500">
+                      Tidak ada user
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* MODAL KONFIRMASI DELETE */}
       {selectedUser && (

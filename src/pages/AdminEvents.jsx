@@ -5,28 +5,27 @@ import axios from "axios";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
-export default function AdminArticles() {
+export default function AdminEvents() {
   const navigate = useNavigate();
-  const [articles, setArticles] = useState([]);
+  const [events, setEvents] = useState([]);
   const [deleteId, setDeleteId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchArticles();
+    fetchEvents();
   }, []);
 
-  const fetchArticles = async () => {
+  const fetchEvents = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("mindloop_token");
-      const response = await axios.get(`${API_BASE_URL}/api/admin/articles`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${API_BASE_URL}/api/admin/events`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setArticles(response.data.articles || []);
-
+      setEvents(response.data.events || []);
     } catch (err) {
-      setError("Gagal mengambil data artikel");
+      setError("Gagal mengambil data event");
       console.error(err);
     } finally {
       setLoading(false);
@@ -36,21 +35,26 @@ export default function AdminArticles() {
   const confirmDelete = async () => {
     try {
       const token = localStorage.getItem("mindloop_token");
-      await axios.delete(`${API_BASE_URL}/api/admin/articles/${deleteId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.delete(`${API_BASE_URL}/api/admin/events/${deleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setArticles((prev) => prev.filter((a) => a.id !== deleteId));
+      setEvents((prev) => prev.filter((e) => e.id !== deleteId));
       setDeleteId(null);
-
     } catch (err) {
-      setError("Gagal menghapus artikel");
+      setError("Gagal menghapus event");
       console.error(err);
     }
   };
 
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => navigate("/admin")}
@@ -61,9 +65,7 @@ export default function AdminArticles() {
         </button>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">
-        Kelola Artikel
-      </h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">Kelola Event</h1>
 
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between">
@@ -72,7 +74,6 @@ export default function AdminArticles() {
         </div>
       )}
 
-      {/* Table */}
       {loading ? (
         <div className="bg-white rounded-xl shadow p-8 text-center">
           <p className="text-gray-500">Memuat data...</p>
@@ -84,19 +85,23 @@ export default function AdminArticles() {
               <thead className="bg-gray-100 text-gray-600">
                 <tr>
                   <th className="p-4 text-left">Judul</th>
-                  <th className="p-4 text-left">Author</th>
+                  <th className="p-4 text-left">Penyelenggara</th>
+                  <th className="p-4 text-left">Tanggal</th>
+                  <th className="p-4 text-left">Status</th>
                   <th className="p-4 text-center">Aksi</th>
                 </tr>
               </thead>
 
               <tbody>
-                {articles.map((a) => (
-                  <tr key={a.id} className="border-t hover:bg-gray-50">
-                    <td className="p-4">{a.title}</td>
-                    <td className="p-4">{a.author_name || "Unknown"}</td>
+                {events.map((e) => (
+                  <tr key={e.id} className="border-t hover:bg-gray-50">
+                    <td className="p-4">{e.title}</td>
+                    <td className="p-4">{e.organizer_name || "-"}</td>
+                    <td className="p-4">{formatDate(e.date || e.time)}</td>
+                    <td className="p-4">{e.status || "-"}</td>
                     <td className="p-4 text-center">
                       <button
-                        onClick={() => setDeleteId(a.id)}
+                        onClick={() => setDeleteId(e.id)}
                         className="inline-flex items-center gap-1 text-red-600 hover:text-red-800"
                       >
                         <Trash2 size={16} />
@@ -106,10 +111,10 @@ export default function AdminArticles() {
                   </tr>
                 ))}
 
-                {articles.length === 0 && (
+                {events.length === 0 && (
                   <tr>
-                    <td colSpan="3" className="p-6 text-center text-gray-500">
-                      Tidak ada artikel
+                    <td colSpan="5" className="p-6 text-center text-gray-500">
+                      Tidak ada event
                     </td>
                   </tr>
                 )}
@@ -119,15 +124,12 @@ export default function AdminArticles() {
         </div>
       )}
 
-      {/* MODAL KONFIRMASI DELETE */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-2">
-              Hapus Artikel?
-            </h2>
+            <h2 className="text-lg font-semibold mb-2">Hapus Event?</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Artikel yang dihapus tidak bisa dikembalikan.
+              Event yang dihapus tidak bisa dikembalikan.
             </p>
 
             <div className="flex justify-end gap-3">

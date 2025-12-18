@@ -1,6 +1,7 @@
 // src/context/EnhancedQuizContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { submitQuizResult as submitQuizResultAPI, getUserCompletedQuizzes, getUserQuizHistory } from '../services/quizService';
 
 const EnhancedQuizContext = createContext();
 
@@ -32,57 +33,134 @@ export const EnhancedQuizProvider = ({ children }) => {
   });
 
   const [leaderboard, setLeaderboard] = useState([]);
+  const [completedQuizzes, setCompletedQuizzes] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load data from localStorage on component mount
+  // Load data from backend when user logs in, atau dari localStorage untuk guest
   useEffect(() => {
     if (user) {
       loadUserData();
+    } else {
+      // Load guest data dari localStorage
+      loadGuestData();
     }
   }, [user]);
 
-  const loadUserData = () => {
+  const loadGuestData = () => {
     try {
-      const savedHistory = localStorage.getItem(`mindloop_quiz_history_${user.id}`);
-      const savedStats = localStorage.getItem(`mindloop_quiz_stats_${user.id}`);
-      
-      if (savedHistory) setQuizHistory(JSON.parse(savedHistory));
-      if (savedStats) setUserStats(JSON.parse(savedStats));
+      const guestCompleted = localStorage.getItem('mindloop_completed_quizzes_guest');
+      if (guestCompleted) {
+        setCompletedQuizzes(JSON.parse(guestCompleted));
+      } else {
+        setCompletedQuizzes({});
+      }
     } catch (error) {
-      console.error('Error loading quiz data:', error);
+      console.error('Error loading guest data:', error);
+      setCompletedQuizzes({});
     }
   };
 
-  const saveQuizResult = async (quizData) => {
-    const xpEarned = calculateXPEarned(quizData.score, quizData.difficulty);
+  const loadUserData = async () => {
+    if (!user) return;
     
-    const newResult = {
-      id: `quiz_${Date.now()}`,
-      userId: user?.id,
-      ...quizData,
-      completedAt: new Date().toISOString(),
-      xpEarned: xpEarned
+    setIsLoading(true);
+    try {
+      // Fetch completed quizzes dari backend
+      const completedData = await getUserCompletedQuizzes();
+      setCompletedQuizzes(completedData);
+
+      // Fetch quiz history dari backend
+      const historyData = await getUserQuizHistory();
+      setQuizHistory(historyData.history || []);
+      
+      // Update stats dari backend
+      if (historyData.stats) {
+        setUserStats(prev => ({
+          ...prev,
+          totalQuizzes: historyData.stats.totalQuizzes || 0,
+          averageScore: historyData.stats.averageScore || 0
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading quiz data from backend:', error);
+      // Fallback ke localStorage jika backend gagal
+      loadUserDataFromLocalStorage();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadUserDataFromLocalStorage = () => {
+    try {
+      const savedHistory = localStorage.getItem(`mindloop_quiz_history_${user.id}`);
+      const savedStats = localStorage.getItem(`mindloop_quiz_stats_${user.id}`);
+      const savedCompletedQuizzes = localStorage.getItem(`mindloop_completed_quizzes_${user.id}`);
+      
+      if (savedHistory) setQuizHistory(JSON.parse(savedHistory));
+      if (savedStats) setUserStats(JSON.parse(savedStats));
+      if (savedCompletedQuizzes) setCompletedQuizzes(JSON.parse(savedCompletedQuizzes));
+    } catch (error) {
+      console.error('Error loading quiz data from localStorage:', error);
+    }
+  };
+
+  const saveQuizResult = async (quizId, score, totalQuestions, timeSpent) => {
+    // Update completed state untuk guest/user
+    const newCompletedQuizzes = {
+      ...completedQuizzes,
+      [quizId]: true
     };
+    setCompletedQuizzes(newCompletedQuizzes);
 
-    const updatedHistory = [newResult, ...quizHistory];
-    setQuizHistory(updatedHistory);
-
-    // Update user stats
-    const updatedStats = updateUserStats(newResult);
-    
-    // Check for new badges and achievements
-    const newBadges = checkForNewBadges(updatedStats, newResult);
-
-    // Save to localStorage
-    if (user) {
-      localStorage.setItem(`mindloop_quiz_history_${user.id}`, JSON.stringify(updatedHistory));
-      localStorage.setItem(`mindloop_quiz_stats_${user.id}`, JSON.stringify(updatedStats));
+    // Jika user tidak login (guest), hanya simpan di localStorage tanpa backend
+    if (!user) {
+      localStorage.setItem('mindloop_completed_quizzes_guest', JSON.stringify(newCompletedQuizzes));
+      return { success: true, isGuest: true, xpEarned: 0 };
     }
 
-    return {
-      quizResult: newResult,
-      newBadges,
-      updatedStats
-    };
+    try {
+      // Kirim ke backend jika user login
+      const result = await submitQuizResultAPI(quizId, score, totalQuestions, Math.ceil(timeSpent / 60));
+
+      // Reload data dari backend untuk sinkronisasi
+      await loadUserData();
+
+      // Backup ke localStorage
+      localStorage.setItem(`mindloop_completed_quizzes_${user.id}`, JSON.stringify(newCompletedQuizzes));
+
+      return { 
+        success: true, 
+        xpEarned: result.xpEarned || 0,
+        newXP: result.newXP || 0,
+        leveledUp: result.leveledUp || false
+      };
+    } catch (error) {
+      console.error('Error saving quiz result:', error);
+      
+      // Fallback: simpan ke localStorage jika backend gagal
+      const quizResult = {
+        id: Date.now().toString(),
+        quizId,
+        userId: user.id,
+        score,
+        totalQuestions,
+        percentage: Math.round((score / totalQuestions) * 100),
+        completedAt: new Date().toISOString(),
+        timeSpent
+      };
+
+      const newHistory = [quizResult, ...quizHistory];
+      setQuizHistory(newHistory);
+
+      localStorage.setItem(`mindloop_quiz_history_${user.id}`, JSON.stringify(newHistory));
+      localStorage.setItem(`mindloop_completed_quizzes_${user.id}`, JSON.stringify(newCompletedQuizzes));
+
+      throw error;
+    }
+  };
+
+  const hasCompletedQuiz = (quizId) => {
+    return !!completedQuizzes[quizId];
   };
 
   const calculateXPEarned = (score, difficulty) => {
@@ -316,6 +394,7 @@ export const EnhancedQuizProvider = ({ children }) => {
     if (user) {
       localStorage.removeItem(`mindloop_quiz_history_${user.id}`);
       localStorage.removeItem(`mindloop_quiz_stats_${user.id}`);
+      localStorage.removeItem(`mindloop_completed_quizzes_${user.id}`);
     }
   };
 
@@ -325,6 +404,7 @@ export const EnhancedQuizProvider = ({ children }) => {
       userStats,
       leaderboard,
       saveQuizResult,
+      hasCompletedQuiz,
       getPerformanceAnalytics,
       getCategoryPerformance,
       resetProgress

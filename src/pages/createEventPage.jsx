@@ -1,24 +1,52 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Untuk redirect
+import axios from "axios";
 import {
   CalendarCheck,
   BookOpen,
   Calendar,
   Clock,
-  User,
   Tag,
   DollarSign,
-  Upload, // Icon untuk upload
+  Upload,
   Send,
+  ChevronDown,
 } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+
+// Helper: Format Angka ke Rupiah
+const formatRupiah = (value) => {
+  if (!value) return "";
+  const numberString = value.replace(/[^0-9]/g, "");
+  const sisa = numberString.length % 3;
+  let rupiah = numberString.substr(0, sisa);
+  const ribuan = numberString.substr(sisa).match(/\d{3}/g);
+  if (ribuan) {
+    const separator = sisa ? "." : "";
+    rupiah += separator + ribuan.join(".");
+  }
+  return rupiah;
+};
+
+// Mendapatkan tanggal hari ini (YYYY-MM-DD)
+const today = new Date().toISOString().split("T")[0];
 
 const eventTypes = [
   { value: "webinar", label: "Webinar" },
   { value: "workshop", label: "Workshop" },
   { value: "seminar", label: "Seminar" },
   { value: "komunitas", label: "Komunitas" },
+];
+
+const categories = [
+  { value: "literasi-digital", label: "Literasi Digital" },
+  { value: "pengembangan-diri", label: "Pengembangan Diri" },
+  { value: "teknologi", label: "Teknologi & Coding" },
+  { value: "kesehatan", label: "Kesehatan & Kebugaran" },
+  { value: "lainnya", label: "Lainnya" },
 ];
 
 const difficulties = [
@@ -28,7 +56,6 @@ const difficulties = [
   { value: "Semua Level", label: "Semua Level" },
 ];
 
-// Komponen Input Field generik
 const FormInput = ({
   label,
   id,
@@ -39,344 +66,298 @@ const FormInput = ({
   icon: Icon,
   required = false,
   isFile = false,
+  min,
 }) => (
   <div className="space-y-2">
     <label htmlFor={id} className="block text-sm font-medium text-gray-700">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
-      {Icon && !isFile && (
-        <Icon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      {Icon && (
+        <Icon
+          className={`w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 ${
+            isFile ? "text-indigo-500" : "text-gray-400"
+          }`}
+        />
       )}
-      {Icon && isFile && (
-        <Icon className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-500" />
-      )}
-
       <input
         type={type}
         id={id}
-        // Jika bukan file, gunakan value dari state. Input file tidak boleh dikontrol via value state.
         {...(!isFile && { value })}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm 
-                    ${!isFile && Icon ? "pl-10" : ""} 
-                    ${
-                      isFile
-                        ? "file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                        : ""
-                    }
-                `}
+        min={min}
+        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm ${
+          Icon ? "pl-10" : ""
+        } ${
+          isFile
+            ? "file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+            : ""
+        }`}
       />
-      {isFile && (
-        <p className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 pointer-events-none">
-          Pilih file...
-        </p>
-      )}
     </div>
   </div>
 );
 
 const CreateEventPage = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
     time: "",
     type: "webinar",
-    category: "",
-    speaker: "",
+    category: "literasi-digital",
     price: "Gratis",
     difficulty: "Pemula",
     tags: "",
-    // Field untuk File
     eventImageFile: null,
-    speakerImageFile: null,
   });
 
   const handleChange = (e) => {
     const { id, value, type, files } = e.target;
 
     if (type === "file") {
-      setFormData((prev) => ({
-        ...prev,
-        [id]: files[0], // Menyimpan objek File
-      }));
+      setFormData((prev) => ({ ...prev, [id]: files[0] }));
+    } else if (id === "price") {
+      const rawValue = value.replace(/[^0-9]/g, "");
+      const formatted =
+        rawValue === "" || rawValue === "0"
+          ? "Gratis"
+          : "Rp " + formatRupiah(rawValue);
+      setFormData((prev) => ({ ...prev, [id]: formatted }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [id]: value,
-      }));
+      setFormData((prev) => ({ ...prev, [id]: value }));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const tagsArray = formData.tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+    // 1. Ambil token dari localStorage
+    const token = localStorage.getItem("mindloop_token");
 
-    const finalData = {
-      ...formData,
-      tags: tagsArray,
-      status: "upcoming",
-      participants: 0,
-      // Perhatikan, dalam aplikasi nyata, files akan dikirim via FormData API
-      eventImageName: formData.eventImageFile
-        ? formData.eventImageFile.name
-        : "Tidak Ada File",
-      speakerImageName: formData.speakerImageFile
-        ? formData.speakerImageFile.name
-        : "Tidak Ada File",
-      // Menghapus objek File dari output konsol agar lebih bersih (opsional)
-      eventImageFile: undefined,
-      speakerImageFile: undefined,
-    };
-
-    console.log("Data Event Baru (Siap Dikirim):", finalData);
-
-    // Simulasi pengiriman file (biasanya dengan FormData API)
-    if (formData.eventImageFile) {
-      console.log(
-        `Mengunggah Gambar Event: ${formData.eventImageFile.name}, Tipe: ${formData.eventImageFile.type}`
-      );
-    }
-    if (formData.speakerImageFile) {
-      console.log(
-        `Mengunggah Gambar Pembicara: ${formData.speakerImageFile.name}, Tipe: ${formData.speakerImageFile.type}`
-      );
+    // 2. Validasi awal di frontend: Jika tidak ada token, jangan lanjut
+    if (!token) {
+      alert("Anda harus login terlebih dahulu untuk membuat event.");
+      navigate("/login"); // Redirect ke halaman login
+      return;
     }
 
-    alert(
-      "Event berhasil diproses! Cek konsol untuk data dan simulasi upload file."
-    );
+    setLoading(true);
 
-    // Reset formulir setelah submit
-    setFormData({
-      title: "",
-      description: "",
-      date: "",
-      time: "",
-      type: "webinar",
-      category: "",
-      speaker: "",
-      price: "Gratis",
-      difficulty: "Pemula",
-      tags: "",
-      eventImageFile: null,
-      speakerImageFile: null,
-    });
+    try {
+      const cleanPrice =
+        formData.price === "Gratis"
+          ? 0
+          : parseInt(formData.price.replace(/[^0-9]/g, ""));
+      const tagsArray = formData.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
+
+      const dataToSend = new FormData();
+      dataToSend.append("title", formData.title);
+      dataToSend.append("description", formData.description);
+      dataToSend.append("date", formData.date);
+      dataToSend.append("time", formData.time);
+      dataToSend.append("type", formData.type);
+      dataToSend.append("category", formData.category);
+      dataToSend.append("price", cleanPrice);
+      dataToSend.append("difficulty", formData.difficulty);
+      dataToSend.append("tags", JSON.stringify(tagsArray));
+      dataToSend.append("gambar", formData.eventImageFile);
+
+      // 3. Kirim dengan Header Authorization
+      const response = await axios.post(
+        `${API_BASE_URL}/api/event/create-event`,
+        dataToSend,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            // TAMBAHKAN INI:
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        alert("Event berhasil dipublikasikan!");
+        navigate("/events");
+      }
+    } catch (error) {
+      console.error("Error detail:", error.response);
+
+      // Jika backend mengirim error 401 atau 403 (Token kadaluarsa/salah)
+      if (error.response?.status === 401) {
+        alert("Sesi Anda habis. Silakan login kembali.");
+        navigate("/login");
+      } else {
+        alert(
+          "Gagal membuat event: " +
+            (error.response?.data?.message || "Terjadi kesalahan server.")
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const DropdownSelect = ({
+    label,
+    id,
+    value,
+    onChange,
+    options,
+    required,
+  }) => (
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          value={value}
+          onChange={onChange}
+          required
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm pr-10"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
+      </div>
+    </div>
+  );
 
   return (
     <>
-    <div className="min-h-screen bg-gray-50 pt-20 pb-16">
-      <Navbar />
-      {/* Header di tengah (menggantikan sidebar) */}
-      <header className="mb-8 pt-4 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-2">
-          <CalendarCheck className="w-8 h-8 text-indigo-600" />
-          Buat Event Baru
-        </h1>
-        <p className="text-gray-500 mt-2">
-          Masukkan detail event, termasuk media dan jadwal, kemudian
-          publikasikan.
-        </p>
-      </header>
+      <div className="min-h-screen bg-gray-50 pt-20 pb-16">
+        <Navbar />
+        <header className="mb-8 pt-4 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-2">
+            <CalendarCheck className="w-8 h-8 text-indigo-600" />
+            Buat Event Baru
+          </h1>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 md:p-8 rounded-2xl shadow-strong border border-gray-100 space-y-8"
-        >
-          {/* Bagian 1: Detail Utama Event */}
-          <div className="space-y-6 border-b pb-6">
-            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
-              1. Informasi Dasar
-            </h2>
-            <FormInput
-              label="Judul Event"
-              id="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Contoh: Webinar: Teknik Membaca Kritis"
-              icon={BookOpen}
-              required={true}
-            />
-
-            <div className="space-y-2">
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Deskripsi Event (Max 300 Karakter){" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="description"
-                value={formData.description}
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-gray-100 space-y-8"
+          >
+            <section className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
+                1. Informasi Dasar
+              </h2>
+              <FormInput
+                label="Judul Event"
+                id="title"
+                value={formData.title}
                 onChange={handleChange}
-                placeholder="Jelaskan secara singkat dan menarik tentang event ini..."
+                placeholder="Contoh: Webinar: Teknik Membaca Kritis"
+                icon={BookOpen}
                 required={true}
-                rows="3"
-                maxLength={300}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Tipe Event */}
               <div className="space-y-2">
-                <label
-                  htmlFor="type"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Tipe Event <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700">
+                  Deskripsi Event <span className="text-red-500">*</span>
                 </label>
-                <select
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Jelaskan detail event..."
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                  rows="3"
+                  maxLength={300}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <DropdownSelect
+                  label="Tipe Event"
                   id="type"
                   value={formData.type}
                   onChange={handleChange}
+                  options={eventTypes}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                >
-                  {eventTypes.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Kategori Event */}
-              <FormInput
-                label="Kategori"
-                id="category"
-                value={formData.category}
-                onChange={handleChange}
-                placeholder="Contoh: Literasi Digital"
-                icon={Tag}
-                required={true}
-              />
-
-              {/* Tingkat Kesulitan */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="difficulty"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Tingkat Kesulitan <span className="text-red-500">*</span>
-                </label>
-                <select
+                />
+                <DropdownSelect
+                  label="Kategori"
+                  id="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  options={categories}
+                  required
+                />
+                <DropdownSelect
+                  label="Level"
                   id="difficulty"
                   value={formData.difficulty}
                   onChange={handleChange}
+                  options={difficulties}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                >
-                  {difficulties.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Bagian 2: Waktu, Biaya & Tags */}
-          <div className="space-y-6 border-b pb-6">
-            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
-              2. Jadwal & Tags
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormInput
-                label="Tanggal Event"
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={handleChange}
-                icon={Calendar}
-                required={true}
-              />
-              <FormInput
-                label="Waktu Event"
-                id="time"
-                type="time"
-                value={formData.time}
-                onChange={handleChange}
-                icon={Clock}
-                required={true}
-              />
-              <FormInput
-                label="Harga (Rp / Gratis)"
-                id="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="Contoh: Gratis atau Rp 250.000"
-                icon={DollarSign}
-                required={true}
-              />
-            </div>
-
-            {/* Tags Input */}
-            <div className="space-y-2">
-              <label
-                htmlFor="tags"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Tags (Pisahkan dengan koma)
-              </label>
-              <div className="relative">
-                <Tag className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  id="tags"
-                  value={formData.tags}
-                  onChange={handleChange}
-                  placeholder="Contoh: Membaca Kritis, Digital Literacy, Fact-Checking"
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 />
               </div>
-              <p className="text-xs text-gray-500">
-                Pisahkan setiap tag dengan koma (contoh: #tag1, #tag2).
-              </p>
-            </div>
-          </div>
+            </section>
 
-          {/* Bagian 3: Pembicara & Media Upload */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
-              3. Pembicara & Media
-            </h2>
-
-            <FormInput
-              label="Nama Pembicara"
-              id="speaker"
-              value={formData.speaker}
-              onChange={handleChange}
-              placeholder="Contoh: Dr. Sarah Wijaya"
-              icon={User}
-              required={true}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Upload Gambar Pembicara */}
+            <section className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
+                2. Jadwal & Biaya
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormInput
+                  label="Tanggal"
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  icon={Calendar}
+                  required={true}
+                  min={today}
+                />
+                <FormInput
+                  label="Waktu"
+                  id="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  icon={Clock}
+                  required={true}
+                />
+                <FormInput
+                  label="Harga"
+                  id="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  placeholder="0 untuk Gratis"
+                  icon={DollarSign}
+                  required={true}
+                />
+              </div>
               <FormInput
-                label="Upload Foto Pembicara (JPG, PNG)"
-                id="speakerImageFile"
-                type="file"
+                label="Tags (Pisahkan dengan koma)"
+                id="tags"
+                value={formData.tags}
                 onChange={handleChange}
-                icon={Upload}
-                isFile={true}
+                placeholder="Membaca, Digital, AI"
+                icon={Tag}
               />
+            </section>
 
-              {/* Upload Gambar Event Utama */}
+            <section className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">
+                3. Media
+              </h2>
               <FormInput
-                label="Upload Poster Event Utama (Wajib)"
+                label="Upload Poster"
                 id="eventImageFile"
                 type="file"
                 onChange={handleChange}
@@ -384,37 +365,34 @@ const CreateEventPage = () => {
                 isFile={true}
                 required={true}
               />
-            </div>
-            <div className="text-xs text-gray-500 italic mt-2">
               {formData.eventImageFile && (
-                <span>
-                  Poster Event terpilih: **{formData.eventImageFile.name}**
-                </span>
+                <p className="text-xs text-indigo-600 italic">
+                  File terpilih: {formData.eventImageFile.name}
+                </p>
               )}
-              {formData.speakerImageFile && (
-                <span>
-                  {" "}
-                  | Foto Pembicara terpilih: **{formData.speakerImageFile.name}
-                  **
-                </span>
-              )}
-            </div>
-          </div>
+            </section>
 
-          {/* Submit Button */}
-          <div className="pt-6 border-t">
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 text-white font-semibold transition-all ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700 shadow-md"
+              }`}
             >
-              <Send className="w-5 h-5" />
-              Publikasikan Event
+              {loading ? (
+                "Memproses..."
+              ) : (
+                <>
+                  <Send className="w-5 h-5" /> Publikasikan Event
+                </>
+              )}
             </button>
-          </div>
-        </form>
-      </main>
-    </div>
-    <Footer />
+          </form>
+        </main>
+      </div>
+      <Footer />
     </>
   );
 };
