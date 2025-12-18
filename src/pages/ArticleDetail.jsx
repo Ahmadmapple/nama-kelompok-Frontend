@@ -5,6 +5,8 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useAlert } from "../context/AlertContext";
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+
 /* ================================
    🔹 KATEGORI MAPPING
 ================================ */
@@ -43,7 +45,7 @@ const ArticleDetail = () => {
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         const res = await axios.get(
-          `http://localhost:3000/api/article/${id}`,
+          `${API_BASE_URL}/api/article/${id}`,
           { headers }
         );
 
@@ -57,7 +59,7 @@ const ArticleDetail = () => {
         setLoading(false);
 
         // fire & forget view counter
-        axios.post(`http://localhost:3000/api/article/${id}/view`).catch(() => {});
+        axios.post(`${API_BASE_URL}/api/article/${id}/view`).catch(() => {});
       } catch (err) {
         if (!isMounted) return;
         console.error(err);
@@ -80,7 +82,7 @@ const ArticleDetail = () => {
       try {
         setQuizLoading(true);
 
-        const res = await axios.get("http://localhost:3000/api/kuis", {
+        const res = await axios.get(`${API_BASE_URL}/api/kuis`, {
           params: {
             category: article.kategori,
             limit: 3,
@@ -128,7 +130,7 @@ const ArticleDetail = () => {
 
     try {
       const res = await axios.post(
-        `http://localhost:3000/api/article/${id}/like`,
+        `${API_BASE_URL}/api/article/${id}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -175,7 +177,7 @@ const ArticleDetail = () => {
     <div className="min-h-screen bg-cream">
       <Navbar />
 
-      <div className="container-custom py-10 mt-12">
+      <div className="container-custom pt-24 pb-10">
         <article className="max-w-4xl mx-auto">
           {!loading && (
             <>
@@ -189,11 +191,11 @@ const ArticleDetail = () => {
                 </span>
               </nav>
 
-              <h1 className="text-4xl font-bold mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
                 {article.nama_artikel}
               </h1>
 
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <img
                   src={article.author?.avatar || "/default-avatar.png"}
                   className="w-12 h-12 rounded-full"
@@ -210,7 +212,7 @@ const ArticleDetail = () => {
 
               <img
                 src={article.gambar_artikel}
-                className="w-full h-96 object-cover rounded-2xl mb-10"
+                className="w-full h-56 sm:h-72 md:h-96 object-cover rounded-2xl mb-10"
               />
 
               <div
@@ -220,8 +222,8 @@ const ArticleDetail = () => {
 
               {/* Stats & Actions */}
               <div className="border-t border-b border-gray-200 py-6 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">👁️</span>
                       <span className="text-gray-600">{article.view_artikel || 0} views</span>
@@ -232,10 +234,10 @@ const ArticleDetail = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <button
                       onClick={handleLike}
-                      className={`px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
+                      className={`px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 w-full sm:w-auto ${
                         isLiked 
                           ? 'bg-red-500 text-white hover:bg-red-600' 
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -253,13 +255,14 @@ const ArticleDetail = () => {
                           type: "success"
                         });
                       }}
-                      className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-all transform hover:scale-105"
+                      className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-all transform hover:scale-105 w-full sm:w-auto"
                     >
                       🔗 Share
                     </button>
                   </div>
                 </div>
               </div>
+
             </>
           )}
         </article>

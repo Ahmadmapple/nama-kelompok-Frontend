@@ -1,21 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import axios from 'axios'; // Import axios
 import { useAlert } from '../context/AlertContext';
+import { useAuth } from "../context/AuthContext";
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 // Base URL API
-const API_URL = 'http://localhost:3000/api/event/'; 
+const API_URL = `${API_BASE_URL}/api/event/`; 
 
 const Events = () => {
+
     const [events, setEvents] = useState([]); // Data events dari DB
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeFilter, setActiveFilter] = useState('all');
+    const [ownershipFilter, setOwnershipFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState('');
     const [registering, setRegistering] = useState(null);
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [editForm, setEditForm] = useState({
+        title: "",
+        description: "",
+        date: "",
+        time: "",
+        type: "webinar",
+        price: "Gratis",
+        status: "upcoming",
+        tags: "",
+    });
+    const [isSaving, setIsSaving] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
     const { showAlert } = useAlert();
+    const { user } = useAuth();
 
     // --- 1. Fetch Data dari API ---
     useEffect(() => {
@@ -54,17 +71,117 @@ const Events = () => {
     ];
 
     // --- 3. Filtering dan Searching (Menggunakan data dinamis) ---
-    const filteredEvents = activeFilter === 'all' 
+    let filteredEvents = activeFilter === 'all' 
         ? events 
         : events.filter(event => event.type === activeFilter);
+
+    if (ownershipFilter === "mine") {
+        if (!user?.id) {
+            filteredEvents = [];
+        } else {
+            filteredEvents = filteredEvents.filter((event) => event.speakerId === user.id);
+        }
+    }
 
     const searchedEvents = searchQuery 
         ? filteredEvents.filter(event => 
             event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+            (event.tags || []).some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
           )
         : filteredEvents;
+
+    const openEdit = (event) => {
+        const raw = event.dateRaw ? new Date(event.dateRaw) : null;
+        const dateVal = raw && !Number.isNaN(raw.getTime()) ? raw.toISOString().slice(0, 10) : "";
+        const timeVal = raw && !Number.isNaN(raw.getTime()) ? raw.toISOString().slice(11, 16) : "";
+
+        setEditingEvent(event);
+        setEditForm({
+            title: event.title || "",
+            description: event.description || "",
+            date: dateVal,
+            time: timeVal,
+            type: event.type || "webinar",
+            price: event.price || "Gratis",
+            status: event.status || "upcoming",
+            tags: Array.isArray(event.tags) ? event.tags.join(", ") : "",
+        });
+    };
+
+    const submitEdit = async () => {
+        try {
+            setIsSaving(true);
+            const token = localStorage.getItem('mindloop_token');
+
+            const tagsArray = editForm.tags
+                ? editForm.tags.split(',').map((t) => t.trim()).filter(Boolean)
+                : [];
+
+            await axios.put(
+                `${API_BASE_URL}/api/event/${editingEvent.id}`,
+                {
+                    title: editForm.title,
+                    description: editForm.description,
+                    date: editForm.date,
+                    time: editForm.time,
+                    type: editForm.type,
+                    price: editForm.price,
+                    status: editForm.status,
+                    tags: tagsArray,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            const updatedDateTime = editForm.date && editForm.time ? new Date(`${editForm.date}T${editForm.time}:00`) : null;
+            const dateLabel = updatedDateTime && !Number.isNaN(updatedDateTime.getTime())
+                ? updatedDateTime.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                : editingEvent.date;
+            const timeLabel = updatedDateTime && !Number.isNaN(updatedDateTime.getTime())
+                ? updatedDateTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB"
+                : editingEvent.time;
+
+            setEvents((prev) =>
+                prev.map((e) =>
+                    e.id === editingEvent.id
+                        ? {
+                            ...e,
+                            title: editForm.title,
+                            description: editForm.description,
+                            type: editForm.type,
+                            status: editForm.status,
+                            price: editForm.price,
+                            tags: tagsArray,
+                            date: dateLabel,
+                            time: timeLabel,
+                            dateRaw: updatedDateTime ? updatedDateTime.toISOString() : e.dateRaw,
+                        }
+                        : e
+                )
+            );
+
+            setEditingEvent(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const confirmDelete = async () => {
+        try {
+            const token = localStorage.getItem('mindloop_token');
+            await axios.delete(`${API_BASE_URL}/api/event/${deleteId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setEvents((prev) => prev.filter((e) => e.id !== deleteId));
+            setDeleteId(null);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     // --- 4. Fungsi-fungsi utilitas untuk styling (tidak berubah) ---
     const getEventTypeColor = (type) => {
@@ -137,7 +254,7 @@ const Events = () => {
         
         try {
             const response = await axios.post(
-                `http://localhost:3000/api/event/${eventId}/register`,
+                `${API_BASE_URL}/api/event/${eventId}/register`,
                 {},
                 {
                     headers: {
@@ -231,10 +348,27 @@ const Events = () => {
                                     {event.status === 'upcoming' ? 'Segera' : event.status}
                                 </span>
                             </div>
-                            <div className="absolute top-4 right-4">
+                            <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${getDifficultyColor(event.difficulty)}`}>
                                     {event.difficulty}
                                 </span>
+
+                                {user?.id && event.speakerId === user.id && (
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => openEdit(event)}
+                                            className="bg-white/90 hover:bg-white text-gray-900 text-xs font-semibold px-3 py-1 rounded-full"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteId(event.id)}
+                                            className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1 rounded-full"
+                                        >
+                                            Hapus
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -359,7 +493,8 @@ const Events = () => {
             {/* Filter Section */}
             <section className="py-8 bg-white border-b border-gray-200 sticky top-16 z-30 shadow-sm">
                 <div className="container mx-auto px-4">
-                    <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
                         {/* Search Bar */}
                         <div className="w-full lg:w-64">
                             <div className="relative">
@@ -398,6 +533,33 @@ const Events = () => {
                                     </span>
                                 </button>
                             ))}
+                        </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <div className="inline-flex bg-gray-100 rounded-lg p-1">
+                                <button
+                                    onClick={() => setOwnershipFilter("all")}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                                        ownershipFilter === "all"
+                                            ? "bg-white text-gray-900 shadow"
+                                            : "text-gray-600 hover:text-gray-900"
+                                    }`}
+                                >
+                                    Semua
+                                </button>
+                                <button
+                                    onClick={() => setOwnershipFilter("mine")}
+                                    disabled={!user}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
+                                        ownershipFilter === "mine"
+                                            ? "bg-white text-gray-900 shadow"
+                                            : "text-gray-600 hover:text-gray-900"
+                                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                                >
+                                    Buatan Saya
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -441,6 +603,129 @@ const Events = () => {
             </section>
             
             <Footer />
+
+            {editingEvent && (
+                <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+                    <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg">
+                            <h2 className="text-lg font-semibold mb-4">Edit Event</h2>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <input
+                                    value={editForm.title}
+                                    onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    placeholder="Judul"
+                                />
+                                <textarea
+                                    value={editForm.description}
+                                    onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                                    className="w-full px-4 py-2 border rounded-lg"
+                                    placeholder="Deskripsi"
+                                    rows={3}
+                                />
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input
+                                        type="date"
+                                        value={editForm.date}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, date: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                    />
+                                    <input
+                                        type="time"
+                                        value={editForm.time}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, time: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <select
+                                        value={editForm.type}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                    >
+                                        {allEventTypes.map((t) => (
+                                            <option key={t} value={t}>
+                                                {t}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={editForm.status}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                    >
+                                        <option value="upcoming">upcoming</option>
+                                        <option value="ongoing">ongoing</option>
+                                        <option value="completed">completed</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <input
+                                        value={editForm.price}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                        placeholder="Harga (mis. Gratis / Rp 10.000)"
+                                    />
+                                    <input
+                                        value={editForm.tags}
+                                        onChange={(e) => setEditForm((p) => ({ ...p, tags: e.target.value }))}
+                                        className="w-full px-4 py-2 border rounded-lg"
+                                        placeholder="Tags (pisahkan dengan koma)"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    onClick={() => setEditingEvent(null)}
+                                    className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+                                    disabled={isSaving}
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={submitEdit}
+                                    className="px-4 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                                    disabled={isSaving}
+                                >
+                                    {isSaving ? "Menyimpan..." : "Simpan"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {deleteId && (
+                <div className="fixed inset-0 bg-black/40 z-50 overflow-y-auto">
+                    <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
+                            <h2 className="text-lg font-semibold mb-2">Hapus Event?</h2>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Event yang dihapus tidak bisa dikembalikan.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setDeleteId(null)}
+                                    className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-100"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700"
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

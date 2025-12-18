@@ -9,6 +9,8 @@ import "react-quill/dist/quill.snow.css";
 import Footer from "../components/layout/Footer";
 import axios from "axios";
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+
 // Data dummy (dibiarkan seperti semula)
 const categories = [
   { value: "digital-literacy", label: "Literasi Digital" },
@@ -181,7 +183,7 @@ const CreateArticlePage = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:3000/api/article/create-article",
+        `${API_BASE_URL}/api/article/create-article`,
         formDataPayload,
         {
           headers: {

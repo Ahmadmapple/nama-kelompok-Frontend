@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   return (
@@ -16,7 +17,7 @@ const Hero = () => {
           {/* Hero Content - Layout lebih optimal */}
           <div className="text-center lg:text-left animate-fade-in-up max-w-2xl lg:max-w-none mx-auto lg:mx-0">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 glass border border-indigo-200 text-indigo-700 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6 lg:mb-8 shadow-soft">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 max-w-full glass border border-indigo-200 text-indigo-700 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium mb-4 md:mb-6 lg:mb-8 shadow-soft">
               <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-500 rounded-full animate-pulse"></span>
               Platform Literasi Modern Terdepan
             </div>
@@ -33,22 +34,31 @@ const Hero = () => {
             
             {/* CTA Buttons dengan layout responsive */}
             <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8 justify-center lg:justify-start">
-              <button className="btn btn-primary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base">
+              <Link to="/login" className="btn btn-primary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base">
                 Mulai Sekarang
                 <svg className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </button>
-              <button className="btn btn-secondary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base">
+              </Link>
+              <button
+                onClick={() => {
+                  document.getElementById("demo")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }}
+                className="btn btn-secondary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base"
+              >
                 <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 </svg>
                 Lihat Demo
               </button>
+
             </div>
             
             {/* Social Proof */}
-            <div className="flex flex-col xs:flex-row items-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-gray-600 justify-center lg:justify-start">
+            <div className="flex flex-col xs:flex-row xs:flex-wrap items-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm text-gray-600 justify-center lg:justify-start">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex -space-x-1.5 sm:-space-x-2">
                   {[1,2,3,4].map((i) => (
@@ -60,7 +70,7 @@ const Hero = () => {
                   <div className="text-gray-500 text-xs">Aktif bulan ini</div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-gray-200">
+              <div className="flex items-center gap-1.5 sm:gap-2 glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-gray-200 max-w-full">
                 <div className="flex text-amber-400">
                   {/* Star icons */}
                   {[...Array(5)].map((_, i) => (
@@ -88,7 +98,7 @@ const Hero = () => {
             </div>
             
             {/* Floating Elements - Dioptimalkan untuk mobile */}
-            <div className="absolute -top-1 -left-1 xs:-top-2 xs:-left-2 sm:-top-3 sm:-left-3 md:-top-4 md:-left-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating border border-gray-100 z-10">
+            <div className="absolute top-2 left-2 sm:-top-3 sm:-left-3 md:-top-4 md:-left-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating border border-gray-100 z-10">
               <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3">
                 <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-md xs:rounded-lg sm:rounded-xl flex items-center justify-center text-white shadow-md">
                   <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +112,7 @@ const Hero = () => {
               </div>
             </div>
             
-            <div className="absolute -bottom-1 -right-1 xs:-bottom-2 xs:-right-2 sm:-bottom-3 sm:-right-3 md:-bottom-4 md:-right-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating floating-delay-1 border border-gray-100 z-10">
+            <div className="absolute bottom-2 right-2 sm:-bottom-3 sm:-right-3 md:-bottom-4 md:-right-4 bg-white rounded-lg xs:rounded-xl sm:rounded-2xl p-2 xs:p-3 sm:p-4 shadow-strong floating floating-delay-1 border border-gray-100 z-10">
               <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3">
                 <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-md xs:rounded-lg sm:rounded-xl flex items-center justify-center text-white shadow-md">
                   <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

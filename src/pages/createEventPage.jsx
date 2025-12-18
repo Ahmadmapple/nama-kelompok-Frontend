@@ -15,6 +15,8 @@ import {
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+
 // Helper: Format Angka ke Rupiah
 const formatRupiah = (value) => {
   if (!value) return "";
@@ -170,7 +172,7 @@ const CreateEventPage = () => {
 
       // 3. Kirim dengan Header Authorization
       const response = await axios.post(
-        "http://localhost:3000/api/event/create-event",
+        `${API_BASE_URL}/api/event/create-event`,
         dataToSend,
         {
           headers: {

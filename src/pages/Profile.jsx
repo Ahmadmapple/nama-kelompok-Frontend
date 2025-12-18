@@ -173,7 +173,7 @@ const Profile = () => {
   );
 
   return (
-    <div className="mt-12 min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-24">
       <Navbar />
 
       <div className="bg-white border-b border-gray-200">
@@ -360,52 +360,62 @@ const Profile = () => {
                   <h2 className="text-xl font-bold text-gray-900">
                     Target Mingguan
                   </h2>
-                  <span className="text-sm text-gray-500">
-                    Reset dalam 2 hari
-                  </span>
+                  {data.weeklyGoals?.daysRemaining !== undefined && (
+                    <span className="text-sm text-gray-500">
+                      Reset dalam {data.weeklyGoals.daysRemaining} hari
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-4">
-                  {data.weeklyGoals?.map((goal, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            goal.progress === 100
-                              ? "bg-green-100 text-green-600"
-                              : "bg-blue-100 text-blue-600"
-                          }`}
-                        >
-                          {goal.progress === 100 ? "✓" : "🎯"}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {goal.goal}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {goal.completed}/{goal.target} selesai
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-gray-900">
-                          {goal.progress}%
-                        </div>
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                  {data.weeklyGoals?.goals?.length > 0 ? (
+                    data.weeklyGoals.goals.map((goal, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
                           <div
-                            className={`h-2 rounded-full ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center ${
                               goal.progress === 100
-                                ? "bg-green-500"
-                                : "bg-blue-500"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-blue-100 text-blue-600"
                             }`}
-                            style={{ width: `${goal.progress}%` }}
-                          ></div>
+                          >
+                            {goal.progress === 100 ? "✓" : "🎯"}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {goal.goal}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {goal.completed}/{goal.target} selesai
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-gray-900">
+                            {goal.progress}%
+                          </div>
+                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${
+                                goal.progress === 100
+                                  ? "bg-green-500"
+                                  : "bg-blue-500"
+                              }`}
+                              style={{ width: `${goal.progress}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="text-6xl mb-3">📅</div>
+                      <p className="text-gray-500 font-medium">Tidak ada target mingguan</p>
+                      <p className="text-sm text-gray-400 mt-1">Target mingguan akan muncul di sini ketika admin membuat target baru</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 

@@ -1,6 +1,6 @@
 // src/components/layout/Navbar.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 // =========================================================
@@ -34,6 +34,7 @@ const getAvatarUrl = (name, existingAvatarUrl) => {
 // =========================================================
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -54,6 +55,21 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // EFFECT 1b: Lock body scroll when mobile menu is open
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = prevOverflow || "";
+    }
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileMenuOpen]);
 
   // EFFECT 2: Handle Click Outside
   useEffect(() => {
@@ -141,6 +157,7 @@ const Navbar = () => {
     logout();
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
+    navigate("/"); // Redirect to homepage after logout
   };
 
   const handleNavClick = (href, type) => {
@@ -342,7 +359,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/register"
-                  className="btn btn-primary text-sm md:text-base"
+                  className="btn btn-primary px-3 py-2 text-xs xs:text-sm md:text-base"
                 >
                   Daftar Gratis
                 </Link>
@@ -373,7 +390,7 @@ const Navbar = () => {
 
         {/* Mobile Menu Content */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu-container bg-white">
+          <div className="md:hidden mt-4 py-4 border-t border-gray-200 mobile-menu-container bg-white max-h-[70vh] overflow-y-auto overscroll-contain">
             <div className="flex flex-col space-y-3">
               {navigation.map((item) => (
                 <Link

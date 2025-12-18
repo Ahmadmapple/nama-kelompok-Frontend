@@ -1,52 +1,158 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const Stats = () => {
-  const stats = [
-    {
-      number: '50K+',
-      label: 'Pengguna Aktif',
-      description: 'Telah bergabung dalam platform',
-      trend: '+25%',
-      trendUp: true
-    },
-    {
-      number: '95%',
-      label: 'Kepuasan Pengguna',
-      description: 'Rating positif dari users',
-      trend: '+5%',
-      trendUp: true
-    },
-    {
-      number: '1.2K+',
-      label: 'Konten Premium',
-      description: 'Artikel dan materi belajar',
-      trend: '+150',
-      trendUp: true
-    },
-    {
-      number: '42',
-      label: 'Ahli Literasi',
-      description: 'Bergabung sebagai mentor',
-      trend: '+8',
-      trendUp: true
-    }
-  ];
+  const [publicStats, setPublicStats] = useState(null);
 
-  const milestones = [
-    { target: "10K", achieved: "15K", label: "Pembaca Bulan Ini", percentage: 150 },
-    { target: "50K", achieved: "50K", label: "Total Pengguna", percentage: 100 },
-    { target: "1K", achieved: "1.2K", label: "Konten Terbit", percentage: 120 }
-  ];
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/public/stats`);
+        if (!cancelled) {
+          setPublicStats(res.data?.stats || null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setPublicStats(null);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const formatCompact = (value) => {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n)) return '0';
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, '')}M+`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K+`;
+    return String(n);
+  };
+
+  const safePct = (done, total) => {
+    const d = Number(done || 0);
+    const t = Number(total || 0);
+    if (!Number.isFinite(d) || !Number.isFinite(t) || t <= 0) return 0;
+    return Math.max(0, Math.round((d / t) * 100));
+  };
+
+  const computed = useMemo(() => {
+    const users = publicStats?.users ?? 50000;
+    const usersThisMonth = publicStats?.usersThisMonth ?? 15000;
+    const articles = publicStats?.articles ?? 1200;
+    const quizzes = publicStats?.quizzes ?? 0;
+    const events = publicStats?.events ?? 0;
+    const content = publicStats?.content ?? (articles + quizzes + events);
+    const organizers = publicStats?.organizers ?? 42;
+
+    const monthlyTarget = 10000;
+    const totalUsersTarget = 50000;
+    const contentTarget = 1000;
+    const oneMillionTarget = 1000000;
+
+    return {
+      users,
+      usersThisMonth,
+      articles,
+      quizzes,
+      events,
+      content,
+      organizers,
+      monthlyTarget,
+      totalUsersTarget,
+      contentTarget,
+      oneMillionTarget,
+    };
+  }, [publicStats]);
+
+  const stats = useMemo(() => {
+    return [
+      {
+        number: formatCompact(computed.users),
+        label: 'Pengguna Aktif',
+        description: 'Telah bergabung dalam platform',
+        trend: `+${formatCompact(computed.usersThisMonth)}`,
+        trendUp: true,
+      },
+      {
+        number: formatCompact(computed.articles),
+        label: 'Artikel Terbit',
+        description: 'Materi bacaan yang tersedia',
+        trend: '+',
+        trendUp: true,
+      },
+      {
+        number: formatCompact(computed.quizzes),
+        label: 'Kuis Tersedia',
+        description: 'Latihan untuk uji pemahaman',
+        trend: '+',
+        trendUp: true,
+      },
+      {
+        number: formatCompact(computed.events),
+        label: 'Event Berlangsung',
+        description: 'Event dan kegiatan literasi',
+        trend: '+',
+        trendUp: true,
+      },
+    ];
+  }, [computed]);
+
+  const milestones = useMemo(() => {
+    const monthlyPct = safePct(computed.usersThisMonth, computed.monthlyTarget);
+    const totalUsersPct = safePct(computed.users, computed.totalUsersTarget);
+    const contentPct = safePct(computed.content, computed.contentTarget);
+
+    return [
+      {
+        target: formatCompact(computed.monthlyTarget),
+        achieved: formatCompact(computed.usersThisMonth),
+        label: 'Pembaca Bulan Ini',
+        percentage: monthlyPct,
+      },
+      {
+        target: formatCompact(computed.totalUsersTarget),
+        achieved: formatCompact(computed.users),
+        label: 'Total Pengguna',
+        percentage: totalUsersPct,
+      },
+      {
+        target: formatCompact(computed.contentTarget),
+        achieved: formatCompact(computed.content),
+        label: 'Konten Terbit',
+        percentage: contentPct,
+      },
+    ].map((m) => ({
+      ...m,
+      percentage: Math.min(m.percentage, 999),
+    }));
+  }, [computed]);
+
+  const overall = useMemo(() => {
+    const pct = safePct(computed.users, computed.oneMillionTarget);
+    return {
+      percentage: Math.min(pct, 100),
+      achieved: computed.users,
+      target: computed.oneMillionTarget,
+    };
+  }, [computed]);
 
   return (
     <section className="py-16 md:py-20 bg-gray-50">
       <div className="container-optimized">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex flex-wrap items-center justify-center gap-2 max-w-full bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
             Dampak Nyata
           </div>
-          
+
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Dalam <span className="gradient-text">Angka & Pencapaian</span>
           </h2>
@@ -62,12 +168,11 @@ const Stats = () => {
               <div className="text-3xl md:text-4xl font-bold bg-gradient-to-br from-indigo-600 to-emerald-600 bg-clip-text text-transparent mb-3">
                 {stat.number}
               </div>
-              
               <div className="flex items-center justify-center gap-2 mb-2">
                 <div className="text-lg font-semibold text-gray-900">{stat.label}</div>
                 <div className={`flex items-center gap-1 text-sm px-2 py-1 rounded-full ${
-                  stat.trendUp 
-                    ? 'bg-green-100 text-green-700' 
+                  stat.trendUp
+                    ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700'
                 }`}>
                   <svg className={`w-3 h-3 ${stat.trendUp ? 'rotate-0' : 'rotate-180'}`} fill="currentColor" viewBox="0 0 20 20">
@@ -76,7 +181,6 @@ const Stats = () => {
                   {stat.trend}
                 </div>
               </div>
-              
               <div className="text-gray-500 text-sm">{stat.description}</div>
             </div>
           ))}
@@ -122,7 +226,6 @@ const Stats = () => {
                     </div>
                   </div>
                 </div>
-                
                 <div className="text-2xl font-bold text-gray-900 mb-1">
                   {milestone.achieved}
                 </div>
@@ -138,19 +241,19 @@ const Stats = () => {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-900">Progress Menuju 1 Juta Pembaca Cerdas</span>
-              <span className="text-sm font-medium text-indigo-600">15% Tercapai</span>
+              <span className="text-sm font-medium text-indigo-600">{overall.percentage}% Tercapai</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
+              <div
                 className="bg-gradient-to-r from-indigo-600 to-emerald-500 h-3 rounded-full transition-all duration-1000 relative overflow-hidden"
-                style={{ width: '15%' }}
+                style={{ width: `${overall.percentage}%` }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse-slow"></div>
               </div>
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>150,000 Pembaca</span>
-              <span>1,000,000 Target</span>
+              <span>{Number(overall.achieved || 0).toLocaleString('id-ID')} Pembaca</span>
+              <span>{Number(overall.target || 0).toLocaleString('id-ID')} Target</span>
             </div>
           </div>
         </div>

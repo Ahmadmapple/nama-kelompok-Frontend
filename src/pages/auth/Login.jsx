@@ -32,7 +32,12 @@ const Login = () => {
 
     if (result?.success) {
       await fetchProfile();
-      navigate("/profile");
+      
+      if (result.user?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/profile");
+      }
     }
 
     setIsLoading(false);
