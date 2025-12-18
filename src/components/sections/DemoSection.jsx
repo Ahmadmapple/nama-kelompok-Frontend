@@ -4,7 +4,7 @@ const DemoSection = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   return (
-    <section className="section-optimized bg-gray-50">
+    <section id="demo" className="section-optimized bg-gray-50">
       <div className="container-optimized">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Content */}
@@ -52,9 +52,7 @@ const DemoSection = () => {
                 </svg>
                 Tonton Demo Video
               </button>
-              <button className="btn btn-secondary justify-center">
-                Coba Demo Interaktif
-              </button>
+              
             </div>
           </div>
 

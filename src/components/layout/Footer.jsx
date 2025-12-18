@@ -121,7 +121,7 @@ const Footer = () => {
         <div className="container-optimized py-4 md:py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-4">
             <div className="text-gray-400 text-xs md:text-sm text-center md:text-left">
-              © 2024 MindLoop. All rights reserved.
+              © 2025 MindLoop. All rights reserved.
             </div>
             <div className="flex gap-4 md:gap-6 text-xs md:text-sm text-gray-400">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>

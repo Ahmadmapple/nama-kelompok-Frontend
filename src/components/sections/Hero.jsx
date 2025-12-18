@@ -39,12 +39,21 @@ const Hero = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </button>
-              <button className="btn btn-secondary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base">
+              <button
+                onClick={() => {
+                  document.getElementById("demo")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                }}
+                className="btn btn-secondary btn-lg group w-full xs:w-auto justify-center text-sm md:text-base"
+              >
                 <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 </svg>
                 Lihat Demo
               </button>
+
             </div>
             
             {/* Social Proof */}
