@@ -180,20 +180,14 @@ export const AuthProvider = ({ children }) => {
         agreeToTerms,
         newsletter,
       });
-      const { message, verificationToken, otp } = response.data;
+      const { message, verificationToken } = response.data;
 
       setAuthSuccess(message);
 
       localStorage.setItem("email", data.email);
       localStorage.setItem("otpToken", verificationToken); // SIMPAN TOKEN OTP
 
-      if (otp) {
-        localStorage.setItem("otpDebug", String(otp));
-      } else {
-        localStorage.removeItem("otpDebug");
-      }
-
-      return { success: true, verificationToken: verificationToken, otp };
+      return { success: true, verificationToken: verificationToken };
     } catch (error) {
       const errMsg =
         error.response?.data?.message || "Terjadi kesalahan server";
