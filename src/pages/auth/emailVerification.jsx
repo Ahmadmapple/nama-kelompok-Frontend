@@ -8,7 +8,6 @@ const EmailVerification = () => {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [debugOtp, setDebugOtp] = useState(localStorage.getItem("otpDebug") || "");
   const inputsRef = useRef([]);
   const navigate = useNavigate();
   const { showAlert } = useAlert();
@@ -110,11 +109,6 @@ const EmailVerification = () => {
           console.log('New OTP token saved, length:', data.verificationToken.length);
         }
 
-        if (data.otp) {
-          localStorage.setItem("otpDebug", String(data.otp));
-          setDebugOtp(String(data.otp));
-        }
-
         setCode(Array(6).fill(""));
         inputsRef.current[0]?.focus();
         
@@ -161,13 +155,6 @@ const EmailVerification = () => {
             />
           ))}
         </div>
-
-        {debugOtp ? (
-          <div className="text-center">
-            <span className="text-xs text-gray-600">Kode OTP: </span>
-            <span className="text-xs font-semibold text-gray-900">{debugOtp}</span>
-          </div>
-        ) : null}
 
         <button
           type="submit"
