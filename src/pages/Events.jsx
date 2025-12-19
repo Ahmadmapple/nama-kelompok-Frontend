@@ -491,7 +491,7 @@ const Events = () => {
             </section>
 
             {/* Filter Section */}
-            <section className="py-8 bg-white border-b border-gray-200 sticky top-16 z-30 shadow-sm">
+            <section className="py-8 bg-white border-b border-gray-200 top-16 z-30 shadow-sm">
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
