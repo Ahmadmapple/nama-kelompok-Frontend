@@ -29,6 +29,7 @@ const Register = () => {
 
   useEffect(() => {
     clearAuthMessages();
+    localStorage.removeItem("otpDebug");
   }, []);
 
   // Redirect jika sudah login
