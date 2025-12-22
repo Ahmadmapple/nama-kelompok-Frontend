@@ -27,6 +27,10 @@ export default function AdminWeeklyTarget() {
     try {
       setLoading(true);
       const token = localStorage.getItem("mindloop_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
       const response = await axios.get(`${API_BASE_URL}/api/weekly-target/admin/all`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -48,6 +52,10 @@ export default function AdminWeeklyTarget() {
     e.preventDefault();
     try {
       const token = localStorage.getItem("mindloop_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
       const now = new Date();
       const day = now.getDay();
       const diffToMonday = (day === 0 ? -6 : 1) - day;
@@ -88,6 +96,10 @@ export default function AdminWeeklyTarget() {
   const confirmDelete = async () => {
     try {
       const token = localStorage.getItem("mindloop_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
       await axios.delete(`${API_BASE_URL}/api/weekly-target/admin/${deleteId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -170,14 +182,33 @@ export default function AdminWeeklyTarget() {
                       <span className="font-semibold text-indigo-600">{t.targetQuizzes}</span> kuis
                     </td>
                     <td className="p-4 text-center">
-                      {t.status === 'active' ? (
-                        <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
-                          Aktif
-                        </span>
+                      {t.status === 'completed' ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700">
+                            Selesai
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {t.completedUsers}/{t.totalUsers} user
+                          </span>
+                        </div>
+                      ) : t.status === 'active' ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700">
+                            Aktif
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {t.completedUsers}/{t.totalUsers} user selesai
+                          </span>
+                        </div>
                       ) : (
-                        <span className="px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-600">
-                          Selesai
-                        </span>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="px-3 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
+                            Tidak Aktif
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {t.completedUsers}/{t.totalUsers} user selesai
+                          </span>
+                        </div>
                       )}
                     </td>
                     <td className="p-4 text-center">
