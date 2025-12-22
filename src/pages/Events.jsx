@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 // Base URL API
-const API_URL = `${API_BASE_URL}/api/event/`; 
+const API_URL = `${API_BASE_URL}/api/event/`;
 
 const Events = () => {
 
@@ -53,7 +53,7 @@ const Events = () => {
     // --- 2. Hitung Kategori Secara Dinamis ---
     // Logika ini menggantikan array eventCategories yang hardcode
     const allEventTypes = ['webinar', 'workshop', 'seminar', 'komunitas'];
-    
+
     // Hitung jumlah event untuk setiap tipe
     const categoryCounts = events.reduce((acc, event) => {
         // Menggunakan event.type dari data DB
@@ -71,8 +71,8 @@ const Events = () => {
     ];
 
     // --- 3. Filtering dan Searching (Menggunakan data dinamis) ---
-    let filteredEvents = activeFilter === 'all' 
-        ? events 
+    let filteredEvents = activeFilter === 'all'
+        ? events
         : events.filter(event => event.type === activeFilter);
 
     if (ownershipFilter === "mine") {
@@ -83,12 +83,12 @@ const Events = () => {
         }
     }
 
-    const searchedEvents = searchQuery 
-        ? filteredEvents.filter(event => 
+    const searchedEvents = searchQuery
+        ? filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (event.tags || []).some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
+        )
         : filteredEvents;
 
     const openEdit = (event) => {
@@ -183,6 +183,25 @@ const Events = () => {
         }
     };
 
+    const formatPrice = (price) => {
+        if (price === null || price === undefined) return "Gratis";
+        if (typeof price === "number") return price === 0 ? "Gratis" : price;
+
+        const str = String(price).trim();
+        if (str === "") return "Gratis";
+        if (str === "0") return "Gratis";
+
+        const numericDirect = Number(str);
+        if (!Number.isNaN(numericDirect) && numericDirect === 0) return "Gratis";
+
+        const numericLooseStr = str.replace(/[^0-9.\-]/g, "");
+        const numericLoose = Number(numericLooseStr);
+        if (numericLooseStr !== "" && !Number.isNaN(numericLoose) && numericLoose === 0) return "Gratis";
+
+        return price;
+    };
+
+
     // --- 4. Fungsi-fungsi utilitas untuk styling (tidak berubah) ---
     const getEventTypeColor = (type) => {
         switch (type) {
@@ -240,7 +259,7 @@ const Events = () => {
     // Fungsi untuk daftar event
     const handleRegisterEvent = async (eventId) => {
         const token = localStorage.getItem('mindloop_token');
-        
+
         if (!token) {
             showAlert({
                 title: "Login Diperlukan",
@@ -251,7 +270,7 @@ const Events = () => {
         }
 
         setRegistering(eventId);
-        
+
         try {
             const response = await axios.post(
                 `${API_BASE_URL}/api/event/${eventId}/register`,
@@ -317,7 +336,7 @@ const Events = () => {
                     </svg>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">Tidak ada event ditemukan</h3>
                     <p className="text-gray-600 mb-6">Coba gunakan kata kunci lain atau pilih kategori yang berbeda</p>
-                    <button 
+                    <button
                         onClick={() => {
                             setSearchQuery('');
                             setActiveFilter('all');
@@ -335,8 +354,8 @@ const Events = () => {
                 {searchedEvents.map((event) => (
                     <div key={event.id} className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden hover:shadow-strong transition-all duration-300 group flex flex-col">
                         <div className="h-48 overflow-hidden relative">
-                            <img 
-                                src={event.image} 
+                            <img
+                                src={event.image}
                                 alt={event.title}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                             />
@@ -400,6 +419,13 @@ const Events = () => {
                                     </svg>
                                     <span>{event.participants} peserta</span>
                                 </div>
+                                <div className="flex items-center gap-3 text-sm font-medium text-green-600">
+                                    <span
+                                        className="font-semibold"
+                                    >
+                                        {formatPrice(event.price)}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="flex flex-wrap gap-1 mb-6">
@@ -413,7 +439,7 @@ const Events = () => {
                             <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
                                 <div className="flex items-center gap-2">
                                     {event.speakerImage ? (
-                                        <img 
+                                        <img
                                             src={event.speakerImage}
                                             alt={event.speaker}
                                             className="w-8 h-8 rounded-full object-cover"
@@ -423,7 +449,7 @@ const Events = () => {
                                             }}
                                         />
                                     ) : null}
-                                    <div 
+                                    <div
                                         className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(event.speaker)} ${event.speakerImage ? 'hidden' : 'flex'}`}
                                     >
                                         {getInitials(event.speaker)}
@@ -434,14 +460,13 @@ const Events = () => {
                                     </div>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={() => handleRegisterEvent(event.id)}
                                     disabled={registering === event.id || event.status === 'completed'}
-                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                                        event.status === 'completed'
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'
-                                    }`}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${event.status === 'completed'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'
+                                        }`}
                                 >
                                     {registering === event.id ? 'Memproses...' : (event.status === 'completed' ? 'Selesai' : 'Daftar')}
                                 </button>
@@ -456,7 +481,7 @@ const Events = () => {
     return (
         <div className="min-h-screen bg-white">
             <Navbar />
-            
+
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-gradient-to-br from-white to-indigo-50">
                 <div className="container mx-auto px-4">
@@ -465,13 +490,13 @@ const Events = () => {
                             <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
                             Event & Kegiatan
                         </div>
-                        
+
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
                             Tingkatkan <span className="text-indigo-600">Literasi</span> dengan Event Interaktif
                         </h1>
-                        
+
                         <p className="text-xl text-gray-600 leading-relaxed max-w-3xl mx-auto">
-                            Ikuti webinar, workshop, dan seminar yang dirancang khusus untuk mengasah 
+                            Ikuti webinar, workshop, dan seminar yang dirancang khusus untuk mengasah
                             kemampuan membaca kritis, menulis efektif, dan berpikir analitis.
                         </p>
 
@@ -491,71 +516,67 @@ const Events = () => {
             </section>
 
             {/* Filter Section */}
-            <section className="py-8 bg-white border-b border-gray-200 top-16 z-30 shadow-sm">
+            <section className="py-8 bg-white border-b border-gray-200 sticky top-16 z-30 shadow-sm">
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-                        {/* Search Bar */}
-                        <div className="w-full lg:w-64">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Cari event..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                />
-                                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                            {/* Search Bar */}
+                            <div className="w-full lg:w-64">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Cari event..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                    />
+                                    <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Category Filters */}
-                        <div className="flex gap-2 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full w-full lg:w-auto">
-                            {eventCategories.map(category => (
-                                <button
-                                    key={category.id}
-                                    onClick={() => setActiveFilter(category.id)}
-                                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
-                                        activeFilter === category.id
+                            {/* Category Filters */}
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar px-2 py-1 flex-nowrap whitespace-nowrap max-w-full w-full lg:w-auto">
+                                {eventCategories.map(category => (
+                                    <button
+                                        key={category.id}
+                                        onClick={() => setActiveFilter(category.id)}
+                                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeFilter === category.id
                                             ? 'bg-indigo-600 text-white shadow-lg'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    {category.name}
-                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                        activeFilter === category.id
+                                            }`}
+                                    >
+                                        {category.name}
+                                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeFilter === category.id
                                             ? 'bg-white/20 text-white'
                                             : 'bg-gray-300 text-gray-700'
-                                    }`}>
-                                        {category.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
+                                            }`}>
+                                            {category.count}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="flex justify-end">
                             <div className="inline-flex bg-gray-100 rounded-lg p-1">
                                 <button
                                     onClick={() => setOwnershipFilter("all")}
-                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                                        ownershipFilter === "all"
-                                            ? "bg-white text-gray-900 shadow"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${ownershipFilter === "all"
+                                        ? "bg-white text-gray-900 shadow"
+                                        : "text-gray-600 hover:text-gray-900"
+                                        }`}
                                 >
                                     Semua
                                 </button>
                                 <button
                                     onClick={() => setOwnershipFilter("mine")}
                                     disabled={!user}
-                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${
-                                        ownershipFilter === "mine"
-                                            ? "bg-white text-gray-900 shadow"
-                                            : "text-gray-600 hover:text-gray-900"
-                                    } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${ownershipFilter === "mine"
+                                        ? "bg-white text-gray-900 shadow"
+                                        : "text-gray-600 hover:text-gray-900"
+                                        } ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     Buatan Saya
                                 </button>
@@ -589,8 +610,8 @@ const Events = () => {
                             Dapatkan notifikasi event terbaru langsung ke email Anda. Bergabung dengan 10,000+ anggota komunitas literasi.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                            <input 
-                                type="email" 
+                            <input
+                                type="email"
                                 placeholder="Email Anda"
                                 className="flex-1 px-4 py-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-white text-gray-900"
                             />
@@ -601,7 +622,7 @@ const Events = () => {
                     </div>
                 </div>
             </section>
-            
+
             <Footer />
 
             {editingEvent && (
