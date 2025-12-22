@@ -45,6 +45,26 @@ const getAvatarUrl = (name, existingAvatarUrl) => {
   )}&size=${size}&color=${color}&background=${background}&bold=true`;
 };
 
+const getBadgeHowToEarn = (badge) => {
+  if (!badge) return "";
+
+  const byId = {
+    "c46553a7-b139-45fa-9575-36f188c204f6": "Baca minimal 10 artikel.",
+    "0872985a-23ab-410e-bc3a-0f868446ec5b": "Selesaikan minimal 10 kuis dengan skor sempurna (100).",
+    "e30bdd98-cf70-47b9-8eef-fc84e5ba94b1": "Aktif 7 hari berturut-turut (streak 7 hari).",
+    "13b200f3-d0e3-4d40-b152-4b3e7c175151": "Hadiri minimal 5 event.",
+    "c0607ee2-08fd-4d53-b2f7-721866d7d39b": "Tingkatkan skill Kecepatan Membaca hingga minimal 80.",
+    "c96aa9b5-a0fc-4d36-9b1d-2c5cd3f180ed": "Tingkatkan skill Analisis Kritis hingga minimal 90.",
+  };
+
+  return (
+    byId[String(badge.id)] ||
+    badge.description ||
+    badge.criteria ||
+    ""
+  );
+};
+
 const Profile = () => {
   const { user, updateProfile, fetchProfile } = useAuth();
 
@@ -677,6 +697,11 @@ const Profile = () => {
                       <div className="text-sm font-medium text-gray-900">
                         {badge.name}
                       </div>
+
+                      <div className="text-xs text-gray-600 mt-1">
+                        {getBadgeHowToEarn(badge)}
+                      </div>
+
                       {badge.earned && (
                         <div className="text-xs text-gray-500 mt-1">
                           {badge.date}

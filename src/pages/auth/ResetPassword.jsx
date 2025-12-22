@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AuthCenteredLayout from "../../components/auth/AuthCenteredLayout";
 
@@ -11,24 +11,17 @@ const ResetPassword = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidToken, setIsValidToken] = useState(true);
-
-  const { token } = useParams();
+  const [email, setEmail] = useState("");
   const navigate = useNavigate();
   const { resetPassword } = useAuth();
 
-  // Validasi token saat komponen mount
   useEffect(() => {
-    const validateToken = async () => {
-      // Simulasi validasi token
-      if (!token || token.length < 10) {
-        setIsValidToken(false);
-        setError("Token reset password tidak valid atau telah kedaluwarsa.");
-      }
-    };
-
-    validateToken();
-  }, [token]);
+    const storedEmail = localStorage.getItem("reset_email") || "";
+    setEmail(storedEmail);
+    if (!storedEmail) {
+      setError("Email untuk reset password tidak ditemukan. Silakan ulangi proses dari Lupa Password.");
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,11 +31,13 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      await resetPassword(token, formData.password, formData.confirmPassword);
+      await resetPassword(email, formData.password, formData.confirmPassword);
 
       setSuccess(
         "Password berhasil direset! Anda akan diarahkan ke halaman login."
       );
+
+      localStorage.removeItem("reset_email");
 
       setTimeout(() => {
         navigate("/login");
@@ -62,45 +57,22 @@ const ResetPassword = () => {
     if (error) setError("");
   };
 
-  if (!isValidToken) {
-    return (
-      <AuthCenteredLayout
-        title="Link Tidak Valid"
-        subtitle="Link reset password tidak valid atau telah kedaluwarsa"
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              className="w-8 h-8 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <p className="text-gray-600 mb-6">
-            Link reset password yang Anda gunakan tidak valid atau telah
-            kedaluwarsa.
-          </p>
-          <Link to="/forgot-password" className="btn btn-primary">
-            Minta Link Baru
-          </Link>
-        </div>
-      </AuthCenteredLayout>
-    );
-  }
-
   return (
     <AuthCenteredLayout
       title="Reset Password"
       subtitle="Buat password baru untuk akun Anda"
     >
+      {!email && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <span className="text-yellow-800 text-sm">
+            Email tidak ditemukan. Silakan kembali ke halaman{" "}
+            <Link to="/forgot-password" className="underline font-semibold">
+              Lupa Password
+            </Link>
+            .
+          </span>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Success Message */}
         {success && (
@@ -239,7 +211,7 @@ const ResetPassword = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || !email}
           className="w-full btn btn-primary justify-center py-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (

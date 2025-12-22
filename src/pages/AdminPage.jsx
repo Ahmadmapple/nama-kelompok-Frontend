@@ -15,6 +15,10 @@ export default function AdminPage() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem("mindloop_token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
         const response = await axios.get(`${API_BASE_URL}/api/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });

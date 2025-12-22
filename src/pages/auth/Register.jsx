@@ -116,10 +116,11 @@ const Register = () => {
     });
 
     if (result.success) {
-      navigate("/emailVerification", {
-        replace: true,
-        state: { email: formData.email },
-      });
+      if (result.autoLogin) {
+        navigate("/profile", { replace: true });
+      } else {
+        navigate("/login", { replace: true });
+      }
     }
 
     setIsLoading(false);

@@ -180,14 +180,30 @@ export const AuthProvider = ({ children }) => {
         agreeToTerms,
         newsletter,
       });
-      const { message, verificationToken } = response.data;
 
+      const { message } = response.data;
       setAuthSuccess(message);
 
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("otpToken", verificationToken); // SIMPAN TOKEN OTP
+      const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        email,
+        password,
+      });
 
-      return { success: true, verificationToken: verificationToken };
+      const { user, token } = loginResponse.data;
+      if (!user || !token) {
+        setAuthError("Registrasi berhasil, namun login otomatis gagal. Silakan login.");
+        return { success: true, autoLogin: false };
+      }
+
+      setUser(user);
+      localStorage.setItem("mindloop_user", JSON.stringify(user));
+      localStorage.setItem("mindloop_token", token);
+      localStorage.setItem(
+        "mindloop_token_expiry",
+        (Date.now() + 7 * 24 * 60 * 60 * 1000).toString()
+      );
+
+      return { success: true, autoLogin: true, user };
     } catch (error) {
       const errMsg =
         error.response?.data?.message || "Terjadi kesalahan server";
@@ -275,18 +291,10 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Password saat ini salah");
       }
 
-      // Update token (simulate password change requiring new token)
-      const newToken = generateToken();
-      const expiry = new Date().getTime() + 7 * 24 * 60 * 60 * 1000;
-
-      localStorage.setItem("mindloop_token", newToken);
-      localStorage.setItem("mindloop_token_expiry", expiry.toString());
-
       setAuthSuccess("Password berhasil diubah!");
       return {
         success: true,
         message: "Password berhasil diubah",
-        token: newToken,
       };
     } catch (error) {
       setAuthError(error.message || "Gagal mengubah password");
@@ -304,37 +312,35 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Masukkan email yang valid");
       }
 
-      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, {
         email,
       });
 
-      // Always show same message (security)
-      setAuthSuccess(
-        "Jika email terdaftar, instruksi reset password akan dikirim"
-      );
+      localStorage.setItem("reset_email", email);
+      setAuthSuccess(response.data?.message || "Email valid. Silakan lanjut reset password.");
 
       return {
         success: true,
-        message: "Instruksi reset password telah dikirim",
+        message: response.data?.message,
       };
     } catch (error) {
-      setAuthError(
+      const message =
         error.response?.data?.message ||
-          error.message ||
-          "Gagal mengirim email reset password"
-      );
-      throw error;
+        error.message ||
+        "Gagal memproses permintaan";
+      setAuthError(message);
+      return { success: false, error: message };
     }
   };
 
   // Reset password function
-  const resetPassword = async (token, newPassword, confirmPassword) => {
+  const resetPassword = async (email, newPassword, confirmPassword) => {
     setAuthError(null);
     setAuthSuccess(null);
 
     try {
-      if (!token) {
-        throw new Error("Token reset password tidak ditemukan");
+      if (!email || !validateEmail(email)) {
+        throw new Error("Masukkan email yang valid");
       }
 
       if (!newPassword || !confirmPassword) {
@@ -353,7 +359,7 @@ export const AuthProvider = ({ children }) => {
 
       // CALL BACKEND
       const response = await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
-        token,
+        email,
         newPassword,
         confirmPassword,
       });

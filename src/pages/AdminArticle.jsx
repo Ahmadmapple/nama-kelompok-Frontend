@@ -20,6 +20,10 @@ export default function AdminArticles() {
     try {
       setLoading(true);
       const token = localStorage.getItem("mindloop_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
       const response = await axios.get(`${API_BASE_URL}/api/admin/articles`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -36,6 +40,10 @@ export default function AdminArticles() {
   const confirmDelete = async () => {
     try {
       const token = localStorage.getItem("mindloop_token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
       await axios.delete(`${API_BASE_URL}/api/admin/articles/${deleteId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });

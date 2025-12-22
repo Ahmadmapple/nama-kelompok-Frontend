@@ -16,7 +16,6 @@ import Profile from "./pages/Profile";
 import Features from "./pages/Features";
 import Quiz from "./pages/Quiz";
 import Events from "./pages/Events";
-import EmailVerification from "./pages/auth/emailVerification";
 import "./index.css";
 import CreateArticlePage from "./pages/createArticlePage";
 import CreateQuizPage from "./pages/createQuizPage";
@@ -91,18 +90,10 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/reset-password/:token"
+            path="/reset-password"
             element={
               <ProtectedRoute requireAuth={false}>
                 <ResetPassword />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/emailVerification"
-            element={
-              <ProtectedRoute requireAuth={false}>
-                <EmailVerification />
               </ProtectedRoute>
             }
           />

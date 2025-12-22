@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import AuthCenteredLayout from "../../components/auth/AuthCenteredLayout";
 
@@ -9,6 +10,7 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { forgotPassword } = useAuth();
+  const navigate = useNavigate();
 
   const handleResend = async () => {
     if (!email) {
@@ -24,10 +26,11 @@ const ForgotPassword = () => {
       const result = await forgotPassword(email);
 
       if (result.success) {
-        setSuccess("Link reset password telah dikirim ulang ke email Anda");
+        setSuccess(result.message || "Email valid. Silakan lanjut reset password.");
+        navigate("/reset-password", { replace: true });
       }
     } catch (err) {
-      setError("Gagal mengirim ulang link reset");
+      setError("Gagal memproses permintaan");
     } finally {
       setIsLoading(false);
     }
@@ -42,11 +45,11 @@ const ForgotPassword = () => {
     const result = await forgotPassword(email);
 
     if (result.success) {
-      setSuccess("Link reset password telah dikirim ke email Anda!");
-      setEmail("");
+      setSuccess(result.message || "Email valid. Silakan lanjut reset password.");
+      navigate("/reset-password", { replace: true });
     } else {
       setError(
-        result.error || "Gagal mengirim email reset. Silakan coba lagi."
+        result.error || "Email tidak terdaftar atau terjadi kesalahan."
       );
     }
 
@@ -56,7 +59,7 @@ const ForgotPassword = () => {
   return (
     <AuthCenteredLayout
       title="Lupa Password"
-      subtitle="Masukkan email Anda untuk mendapatkan link reset password"
+      subtitle="Masukkan email Anda untuk reset password"
       footerText="Ingat password?"
       footerLink="/login"
       footerLinkText="Masuk di sini"
@@ -141,7 +144,7 @@ const ForgotPassword = () => {
               Mengirim...
             </div>
           ) : (
-            "Kirim Link Reset"
+            "Lanjut Reset"
           )}
         </button>
       </form>
@@ -164,17 +167,17 @@ const ForgotPassword = () => {
           </svg>
           <div>
             <p className="text-blue-800 text-sm font-medium">
-              Tidak menerima email?
+              Email tidak ditemukan?
             </p>
             <p className="text-blue-700 text-xs mt-1">
-              Periksa folder spam atau{" "}
+              Pastikan email yang kamu masukkan sudah terdaftar, atau{" "}
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={isLoading || !email}
                 className="font-semibold underline text-blue-700 disabled:opacity-50"
               >
-                Kirim ulang link
+                Coba lagi
               </button>
             </p>
           </div>
